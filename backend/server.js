@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const colors = require('colors');
+const cookieParser = require("cookie-parser");
 
 // Load environment variables
 dotenv.config();
@@ -16,11 +17,28 @@ const connectDB = require('./config/db');
 // Create Express app
 const app = express();
 
+
+
+const authRoutes = require('./routes/authRoutes');
+// const skillRoutes = require('./routes/skillRoutes');
+// const microTaskRoutes = require('./routes/microTaskRoutes');
+// const matchingRoutes = require('./routes/matchingRoutes');
+// const reputationRoutes = require('./routes/reputationRoutes');
+
+
+
+
 // Middleware
 app.use(helmet());
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
+app.use(cookieParser())
 app.use(morgan('dev'));
+
+// basicAuth
+app.use('/api/auth', authRoutes);
+
+
 
 // Rate limiting
 const limiter = rateLimit({
