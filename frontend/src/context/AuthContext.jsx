@@ -1,64 +1,99 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState } from 'react';
-import { login as loginApi, register as registerApi, logout as logoutApi } from '../services/api';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import api from '../services/api';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export const useAuth = () => useContext(AuthContext);
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
-  });
-  const [error, setError] = useState(null);
-
-  const register = async (userData) => {
-    setError(null);
+  const getCurrentUser = async () => {
     try {
-      const data = await registerApi(userData);
-      setUser(data);
-      localStorage.setItem('user', JSON.stringify(data));
-      return { success: true };
-    } catch (err) {
-      setError(err.message || 'Registration failed');
-      return { success: false, error: err.message };
+      const { data } = await api.get('/auth/me');
+      setUser(data.user);
+      return { success: true, user: data.user };
+    } catch (error) {
+      setUser(null);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to fetch user',
+      };
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    getCurrentUser();
+  }, []);
+
   const login = async (credentials) => {
-    setError(null);
     try {
-      const data = await loginApi(credentials);
-      setUser(data);
-      localStorage.setItem('user', JSON.stringify(data));
-      return { success: true };
-    } catch (err) {
-      setError(err.message || 'Login failed');
-      return { success: false, error: err.message };
+      const { data } = await api.post('/auth/login', credentials);
+
+      if (data?.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      setUser(data.user);
+
+      return { success: true, user: data.user };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Login failed',
+      };
+    }
+  };
+
+  const register = async (userData) => {
+    try {
+      const { data } = await api.post('/auth/register', userData);
+
+      if (data?.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      setUser(data.user);
+
+      return { success: true, user: data.user };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Registration failed',
+      };
     }
   };
 
   const logout = async () => {
-    setError(null);
     try {
-      await logoutApi();
+      await api.post('/auth/logout');
+    } catch (error) {
+      // ignore logout request failure
+    } finally {
+      localStorage.removeItem('token');
       setUser(null);
-      localStorage.removeItem('user');
-    } catch (err) {
-      console.error('Logout error:', err);
-      setUser(null);
-      localStorage.removeItem('user');
     }
+
+    return { success: true };
   };
 
-  const value = {
-    user,
-    error,
-    register,
-    login,
-    logout,
-  };
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      getCurrentUser,
+      refreshUser: getCurrentUser,
+    }),
+    [user, loading]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
+}

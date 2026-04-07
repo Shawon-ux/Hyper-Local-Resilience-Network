@@ -19,6 +19,7 @@ const Navbar = () => {
     { name: 'Home', path: '/', icon: Home },
     { name: 'Dashboard', path: '/dashboard', icon: Map },
     { name: 'Community', path: '/community', icon: Users },
+    { name: 'Safe Status', path: '/safe-status', icon: Shield }
   ];
 
   // Get user's display name and initial safely

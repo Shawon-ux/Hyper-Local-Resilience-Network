@@ -1,36 +1,18 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:1543/api';
+import axios from 'axios';
 
-// Helper function to handle fetch requests
-const request = async (endpoint, options = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const config = {
-    credentials: 'include', // Important: sends cookies (JWT) automatically
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  };
+const api = axios.create({
+  baseURL: '/api',
+  withCredentials: true,
+});
 
-  try {
-    const response = await fetch(url, config);
-    const data = await response.json();
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
 
-    if (!response.ok) {
-      throw { status: response.status, message: data.message || 'Something went wrong' };
-    }
-
-    return data;
-  } catch (error) {
-    console.error('API Error:', error);
-    throw error;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-};
 
-// Auth endpoints
-export const register = (userData) => request('/auth/register', { method: 'POST', body: JSON.stringify(userData) });
-export const login = (credentials) => request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) });
-export const logout = () => request('/auth/logout', { method: 'POST' });
+  return config;
+});
 
-// Protected endpoints (example – you can add more later)
-export const getCurrentUser = () => request('/auth/me'); // we'll add this route later if needed
+export default api;
