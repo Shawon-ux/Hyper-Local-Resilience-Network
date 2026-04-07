@@ -1,10 +1,10 @@
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import SafeStatusModulePage from './pages/SafeStatusModulePage';
+import HomePage from './pages/HomePage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
+import SafeStatusModulePage from './pages/SafeStatusModulePage.jsx';
 
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
