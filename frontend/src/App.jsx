@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import SafeStatusModulePage from './pages/SafeStatusModulePage.jsx';
+import WeatherAlertsPage from './pages/WeatherAlertsPage.jsx';
 
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -53,6 +54,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <SafeStatusModulePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/weather-alerts"
+            element={
+              <ProtectedRoute>
+                <WeatherAlertsPage />
               </ProtectedRoute>
             }
           />

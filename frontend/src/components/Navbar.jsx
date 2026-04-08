@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Menu, X, Home, User, LogOut, Shield, LayoutDashboard, Users } from 'lucide-react';
+import { Menu, X, Home, User, LogOut, Shield, LayoutDashboard, Users, AlertTriangle } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -22,6 +22,7 @@ const Navbar = () => {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Community', path: '/community', icon: Users },
     { name: 'Safe Status', path: '/safe-status', icon: Shield },
+    { name: 'Weather Alerts', path: '/weather-alerts', icon: AlertTriangle },
   ];
 
   const isActive = (path) => location.pathname === path;
