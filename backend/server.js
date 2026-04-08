@@ -21,6 +21,7 @@ const skillRoutes = require("./routes/skillRoutes");
 const microTaskRoutes = require("./routes/microTaskRoutes");
 const matchingRoutes = require("./routes/matchingRoutes");
 const reputationRoutes = require("./routes/reputationRoutes");
+const alertRoutes = require("./routes/alertRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -89,6 +90,7 @@ app.use("/api/skills", skillRoutes);
 app.use("/api/microtasks", microTaskRoutes);
 app.use("/api/matching", matchingRoutes);
 app.use("/api/reputation", reputationRoutes);
+app.use("/api/alerts", alertRoutes);
 
 // Socket.io
 io.on("connection", (socket) => {
