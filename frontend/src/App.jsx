@@ -1,10 +1,11 @@
-import { Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import ProtectedRoute from './components/ProtectedRoute';
-import HomePage from './pages/HomePage.jsx';
-import LoginPage from './pages/LoginPage.jsx';
-import RegisterPage from './pages/RegisterPage.jsx';
-import SafeStatusModulePage from './pages/SafeStatusModulePage.jsx';
+import { Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import HomePage from "./pages/HomePage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
 
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -12,13 +13,6 @@ const DashboardPage = () => (
     <p className="mt-4 text-gray-600">
       Welcome to your dashboard. Other modules and summaries can appear here.
     </p>
-  </div>
-);
-
-const ProfilePage = () => (
-  <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-    <p className="mt-4 text-gray-600">User profile and skill management coming soon.</p>
   </div>
 );
 
@@ -80,7 +74,8 @@ function App() {
       <footer className="bg-white border-t mt-auto">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <p className="text-center text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} HyperLocal Resilience Network. All rights reserved.
+            &copy; {new Date().getFullYear()} HyperLocal Resilience Network. All
+            rights reserved.
           </p>
         </div>
       </footer>
