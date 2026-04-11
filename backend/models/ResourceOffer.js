@@ -43,6 +43,10 @@ const resourceOfferSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+    photoUrl: {
+      type: String,
+      default: ""
+    },
     status: {
       type: String,
       enum: ["Available", "Reserved", "Unavailable"],

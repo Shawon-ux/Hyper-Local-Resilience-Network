@@ -9,6 +9,8 @@ const rateLimit = require("express-rate-limit");
 const colors = require("colors");
 const cookieParser = require("cookie-parser");
 const { Server } = require("socket.io");
+const path = require("path");
+const fs = require("fs");
 
 dotenv.config();
 
@@ -45,8 +47,8 @@ app.use(
   })
 );
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(morgan("dev"));
 
@@ -57,6 +59,12 @@ const limiter = rateLimit({
 });
 
 app.use("/api", limiter);
+
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use("/uploads", express.static(uploadDir));
 
 // Routes
 

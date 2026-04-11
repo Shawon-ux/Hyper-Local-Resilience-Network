@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SafeStatusModulePage from './pages/SafeStatusModulePage';
+import ResourcesPage from './pages/ResourcesPage';
 
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -53,6 +54,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <SafeStatusModulePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/resources"
+            element={
+              <ProtectedRoute>
+                <ResourcesPage />
               </ProtectedRoute>
             }
           />

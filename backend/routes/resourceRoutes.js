@@ -1,11 +1,48 @@
 const express = require("express");
+const path = require("path");
+const fs = require("fs");
 const router = express.Router();
 const ResourceOffer = require("../models/ResourceOffer");
+
+const uploadDir = path.join(__dirname, "../uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const createPhotoFile = (photoData, photoName) => {
+  const matches = photoData.match(/^data:(image\/[^;]+);base64,(.+)$/);
+  if (!matches) return null;
+  const extension = path.extname(photoName) || `.${matches[1].split('/')[1]}`;
+  const filename = `${Date.now()}-${path.basename(photoName, extension)}${extension}`;
+  const filePath = path.join(uploadDir, filename);
+  fs.writeFileSync(filePath, Buffer.from(matches[2], 'base64'));
+  return `/uploads/${filename}`;
+};
 
 // 1. Create resource offer
 router.post("/", async (req, res) => {
   try {
-    const offer = new ResourceOffer(req.body);
+    let photoUrl = "";
+    if (req.body.photoData && req.body.photoName) {
+      photoUrl = createPhotoFile(req.body.photoData, req.body.photoName);
+    }
+
+    const payload = {
+      userName: req.body.userName,
+      phone: req.body.phone,
+      community: req.body.community,
+      resourceName: req.body.resourceName,
+      quantity: Number(req.body.quantity),
+      unit: req.body.unit || "items",
+      availabilityStart: req.body.availabilityStart,
+      availabilityEnd: req.body.availabilityEnd,
+      usageConstraints: req.body.usageConstraints || "",
+      latitude: Number(req.body.latitude),
+      longitude: Number(req.body.longitude),
+      photoUrl,
+    };
+
+    const offer = new ResourceOffer(payload);
     const savedOffer = await offer.save();
 
     const io = req.app.get("io");
@@ -15,7 +52,7 @@ router.post("/", async (req, res) => {
   } catch (error) {
     res.status(400).json({
       message: "Failed to create resource offer",
-      error: error.message
+      error: error.message,
     });
   }
 });
