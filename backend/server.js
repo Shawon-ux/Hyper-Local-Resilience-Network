@@ -60,18 +60,6 @@ app.use("/api", limiter);
 
 // Routes
 
-// arnabRoutes
-const skillRoutes = require('./routes/skillRoutes');
-const microTaskRoutes = require('./routes/microTaskRoutes');
-const matchingRoutes = require('./routes/matchingRoutes');
-const reputationRoutes = require('./routes/reputationRoutes');
-app.use('/api/auth', authRoutes);
-app.use('/api/skills', skillRoutes);
-app.use('/api/microtasks', microTaskRoutes);
-app.use('/api/matching', matchingRoutes);
-app.use('/api/reputation', reputationRoutes);
-
-
 app.get("/", (req, res) => {
   res.send("Hyper Local Resilience Network API is running");
 });
