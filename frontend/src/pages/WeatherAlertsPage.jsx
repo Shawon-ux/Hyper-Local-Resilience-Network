@@ -94,6 +94,15 @@ const WeatherAlertsPage = () => {
       ]
     : [];
 
+  const riskCards = prediction
+    ? [
+        { label: 'Sandbag risk', value: prediction.resourceRisks.sandbags },
+        { label: 'Fuel request risk', value: prediction.resourceRisks.fuel },
+        { label: 'Water request risk', value: prediction.resourceRisks.water },
+        { label: 'Shelter request risk', value: prediction.resourceRisks.shelter },
+      ]
+    : [];
+
   return (
     <Layout
       title="Weather & Disaster Alerts"
@@ -275,9 +284,9 @@ const WeatherAlertsPage = () => {
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="flex items-center gap-3 text-slate-900">
+          <div className="grid gap-6 lg:grid-cols-[1.2fr,0.85fr]">
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+              <div className="flex items-start gap-3 text-slate-900">
                 <Info className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700">
@@ -288,13 +297,25 @@ const WeatherAlertsPage = () => {
                   </p>
                 </div>
               </div>
-              <p className="mt-4 text-sm text-slate-500">
+              <p className="mt-6 text-sm leading-7 text-slate-700">
                 {predictionLoading
                   ? 'Calculating demand forecast...'
                   : prediction
                   ? prediction.summary
                   : 'Forecast details will appear here once alerts are loaded.'}
               </p>
+              {prediction?.next6HoursMessages?.length > 0 && (
+                <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Key insights</p>
+                  <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
+                    {prediction.next6HoursMessages.map((message, index) => (
+                      <p key={index} className="rounded-2xl bg-slate-50 px-4 py-3">
+                        {message}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
               {predictionError && (
                 <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {predictionError}
@@ -302,23 +323,35 @@ const WeatherAlertsPage = () => {
               )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-3xl bg-slate-50 px-4 py-4 text-sm text-slate-700 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Forecast confidence</p>
-                <p className="mt-2 text-xl font-semibold text-slate-900">{prediction?.confidence || 'Pending'}</p>
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-slate-700 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Forecast confidence</p>
+                  <p className="mt-3 text-2xl font-semibold text-slate-900">{prediction?.confidence || 'Pending'}</p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-slate-700 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Local reports</p>
+                  <p className="mt-3 text-2xl font-semibold text-slate-900">{prediction ? prediction.localReportCount : '-'}</p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-slate-700 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Unsafe reports</p>
+                  <p className="mt-3 text-2xl font-semibold text-slate-900">{prediction ? prediction.unsafeReportCount : '-'}</p>
+                </div>
               </div>
-              <div className="rounded-3xl bg-slate-50 px-4 py-4 text-sm text-slate-700 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Local reports</p>
-                <p className="mt-2 text-xl font-semibold text-slate-900">{prediction ? prediction.localReportCount : '-'}</p>
-              </div>
-              <div className="rounded-3xl bg-slate-50 px-4 py-4 text-sm text-slate-700 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Unsafe reports</p>
-                <p className="mt-2 text-xl font-semibold text-slate-900">{prediction ? prediction.unsafeReportCount : '-'}</p>
-              </div>
+              {prediction && (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {riskCards.map((card) => (
+                    <div key={card.label} className="rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{card.label}</p>
+                      <p className="mt-2 text-xl font-semibold text-slate-900">{card.value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             {predictionLoading ? (
               <div className="col-span-full rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center text-slate-500">
                 <RefreshCw className="mx-auto h-8 w-8 animate-spin" />
@@ -326,7 +359,7 @@ const WeatherAlertsPage = () => {
               </div>
             ) : prediction ? (
               demandCards.map((card) => (
-                <div key={card.label} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                <div key={card.label} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                   <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{card.label}</p>
                   <p className="mt-3 text-xl font-semibold text-slate-900">{card.value}</p>
                 </div>
@@ -340,12 +373,12 @@ const WeatherAlertsPage = () => {
 
           {prediction && (
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700 shadow-sm">
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-slate-700 shadow-sm">
                 <p className="font-semibold text-slate-900">Current supply gap</p>
                 <p className="mt-3 text-sm text-slate-600">Water gap: {formatNumber(prediction.gap.water)} liters</p>
                 <p className="mt-1 text-sm text-slate-600">Shelter gap: {formatNumber(prediction.gap.shelter)} units</p>
               </div>
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700 shadow-sm">
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-slate-700 shadow-sm">
                 <p className="font-semibold text-slate-900">Recommended action</p>
                 <p className="mt-3 text-sm text-slate-600">{prediction.recommendations.first}</p>
                 <p className="mt-2 text-sm text-slate-600">{prediction.recommendations.second}</p>
