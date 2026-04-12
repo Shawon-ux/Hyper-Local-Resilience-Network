@@ -2,14 +2,10 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 
-// Generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
 exports.register = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -31,6 +27,7 @@ exports.register = async (req, res) => {
       address,
       location,
       password,
+      isAdmin: false,
     });
 
     const token = generateToken(user._id);
@@ -51,6 +48,7 @@ exports.register = async (req, res) => {
         phone: user.phone,
         address: user.address,
         location: user.location,
+        isAdmin: user.isAdmin,
         skills: user.skills,
         reputationScore: user.reputationScore,
       },
@@ -61,9 +59,6 @@ exports.register = async (req, res) => {
   }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
 exports.login = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -97,6 +92,7 @@ exports.login = async (req, res) => {
         phone: user.phone,
         address: user.address,
         location: user.location,
+        isAdmin: user.isAdmin,
         skills: user.skills,
         reputationScore: user.reputationScore,
       },
@@ -107,17 +103,11 @@ exports.login = async (req, res) => {
   }
 };
 
-// @desc    Logout user
-// @route   POST /api/auth/logout
-// @access  Public
 exports.logout = (req, res) => {
   res.clearCookie('token');
   res.json({ message: 'Logged out successfully' });
 };
 
-// @desc    Get current logged in user
-// @route   GET /api/auth/me
-// @access  Private
 exports.getMe = async (req, res) => {
   try {
     res.json({
@@ -128,6 +118,7 @@ exports.getMe = async (req, res) => {
         phone: req.user.phone,
         address: req.user.address,
         location: req.user.location,
+        isAdmin: req.user.isAdmin,
         skills: req.user.skills,
         reputationScore: req.user.reputationScore,
       },
