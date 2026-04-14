@@ -10,6 +10,8 @@ import {
   Shield,
   LayoutDashboard,
   Users,
+  Plus,
+  List,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -19,6 +21,7 @@ const Navbar = () => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [taskMenuOpen, setTaskMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -32,6 +35,11 @@ const Navbar = () => {
     { name: "Profile", path: "/profile", icon: User },
     { name: "Community", path: "/community", icon: Users },
     { name: "Safe Status", path: "/safe-status", icon: Shield },
+  ];
+
+  const taskLinks = [
+    { name: "Post Task", path: "/tasks/new", icon: Plus },
+    { name: "My Tasks", path: "/tasks/mine", icon: List },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -72,6 +80,39 @@ const Navbar = () => {
                   {link.name}
                 </Link>
               ))}
+
+            {user && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setTaskMenuOpen((prev) => !prev)}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2 ${
+                    taskMenuOpen
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Plus className="h-4 w-4" />
+                  Tasks
+                </button>
+
+                {taskMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 rounded-3xl border border-slate-200 bg-white shadow-lg ring-1 ring-black/5">
+                    {taskLinks.map((link) => (
+                      <Link
+                        key={link.path}
+                        to={link.path}
+                        onClick={() => setTaskMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <link.icon className="h-4 w-4" />
+                        {link.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* User section */}
@@ -165,6 +206,24 @@ const Navbar = () => {
                   {link.name}
                 </Link>
               ))}
+
+            {user && (
+              <div className="border-t border-slate-200 pt-3">
+                <p className="px-3 pb-2 text-xs uppercase tracking-wide text-slate-500">
+                  Tasks
+                </p>
+                {taskLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    onClick={() => setIsOpen(false)}
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+            )}
 
             {user ? (
               <>

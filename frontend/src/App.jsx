@@ -6,6 +6,8 @@ import LoginPage from "./pages/LoginPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
+import CreateTaskPage from "./pages/CreateTaskPage.jsx";
+import MyTasksPage from "./pages/MyTasksPage.jsx";
 
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -38,6 +40,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/tasks/new"
+            element={
+              <ProtectedRoute>
+                <CreateTaskPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/tasks/mine"
+            element={
+              <ProtectedRoute>
+                <MyTasksPage />
               </ProtectedRoute>
             }
           />
