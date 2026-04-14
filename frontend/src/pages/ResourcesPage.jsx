@@ -34,13 +34,14 @@ export default function ResourcesPage() {
 
   const [offers, setOffers] = useState([]);
   const [pendingAdminOffers, setPendingAdminOffers] = useState([]);
+  const [myApplications, setMyApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState('');
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
-  const [applyMessages, setApplyMessages] = useState({});
+  const [applyForm, setApplyForm] = useState({});
 
   const [form, setForm] = useState({
     resourceName: '',
@@ -91,14 +92,19 @@ export default function ResourcesPage() {
     setPendingAdminOffers(data);
   };
 
+  const fetchMyApplications = async () => {
+    const { data } = await api.get('/resources/my-applications');
+    setMyApplications(data);
+  };
+
   const loadAll = async () => {
     setLoading(true);
     setError('');
 
     try {
-      await Promise.all([fetchOffers(), fetchPendingAdminOffers()]);
+      await Promise.all([fetchOffers(), fetchPendingAdminOffers(), fetchMyApplications()]);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load resource offers.');
+      setError(err.response?.data?.message || 'Failed to load resource data.');
     } finally {
       setLoading(false);
     }
@@ -125,17 +131,14 @@ export default function ResourcesPage() {
       loadAll().catch(() => {});
     };
 
-    const events = [
-      'resourceCreated',
-      'resourceUpdated',
-      'resourceDeleted',
-      'resourceApplicationCreated',
-    ];
-
-    events.forEach((event) => socket.on(event, refresh));
+    ['resourceCreated', 'resourceUpdated', 'resourceDeleted'].forEach((event) =>
+      socket.on(event, refresh)
+    );
 
     return () => {
-      events.forEach((event) => socket.off(event, refresh));
+      ['resourceCreated', 'resourceUpdated', 'resourceDeleted'].forEach((event) =>
+        socket.off(event, refresh)
+      );
       socket.disconnect();
     };
   }, [user?.isAdmin]);
@@ -145,13 +148,6 @@ export default function ResourcesPage() {
     setForm((prev) => ({
       ...prev,
       [name]: type === 'number' ? Number(value) : value,
-    }));
-  };
-
-  const handleApplyMessageChange = (offerId, value) => {
-    setApplyMessages((prev) => ({
-      ...prev,
-      [offerId]: value,
     }));
   };
 
@@ -173,6 +169,20 @@ export default function ResourcesPage() {
       setPreviewUrl(reader.result);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleApplyFieldChange = (offerId, field, value) => {
+    setApplyForm((prev) => ({
+      ...prev,
+      [offerId]: {
+        ...(prev[offerId] || {
+          requestedQuantity: 1,
+          applicantAddress: user?.address || '',
+          message: '',
+        }),
+        [field]: value,
+      },
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -241,13 +251,20 @@ export default function ResourcesPage() {
   };
 
   const handleApply = async (offerId) => {
+    const current = applyForm[offerId] || {
+      requestedQuantity: 1,
+      applicantAddress: user?.address || '',
+      message: '',
+    };
+
     try {
       setActionLoading(`apply-${offerId}`);
       await api.post(`/resources/${offerId}/apply`, {
-        message: applyMessages[offerId] || '',
+        requestedQuantity: Number(current.requestedQuantity),
+        applicantAddress: current.applicantAddress,
+        message: current.message,
       });
-      showToast('Application sent to admin for review.');
-      setApplyMessages((prev) => ({ ...prev, [offerId]: '' }));
+      showToast('Application sent to admin.');
       await loadAll();
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to apply.');
@@ -256,30 +273,16 @@ export default function ResourcesPage() {
     }
   };
 
-  const handleDelete = async (offerId) => {
-    const confirmed = window.confirm('Delete this resource?');
-    if (!confirmed) return;
-
-    try {
-      setActionLoading(`delete-${offerId}`);
-      await api.delete(`/resources/${offerId}`);
-      showToast('Your resource was deleted.');
-      await loadAll();
-    } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to delete resource.');
-    } finally {
-      setActionLoading('');
-    }
-  };
-
-  const handleApprove = async (resourceId, applicationId) => {
+  const handleApprove = async (resourceId, applicationId, approvedQuantity) => {
     try {
       setActionLoading(`approve-${applicationId}`);
-      await api.patch(`/resources/${resourceId}/applications/${applicationId}/approve`);
+      await api.patch(`/resources/${resourceId}/applications/${applicationId}/approve`, {
+        approvedQuantity: Number(approvedQuantity),
+      });
       showToast('Application approved.');
       await loadAll();
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to approve application.');
+      showToast(err.response?.data?.message || 'Failed to approve.');
     } finally {
       setActionLoading('');
     }
@@ -292,18 +295,26 @@ export default function ResourcesPage() {
       showToast('Application rejected.');
       await loadAll();
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to reject application.');
+      showToast(err.response?.data?.message || 'Failed to reject.');
     } finally {
       setActionLoading('');
     }
   };
 
-  const hasApplied = (offer) =>
-    Array.isArray(offer?.applications) &&
-    offer.applications.some(
-      (app) =>
-        (typeof app.applicant === 'string' ? app.applicant : app.applicant?._id) === user?._id
-    );
+  const handleDelete = async (offerId) => {
+    if (!window.confirm('Delete this resource?')) return;
+
+    try {
+      setActionLoading(`delete-${offerId}`);
+      await api.delete(`/resources/${offerId}`);
+      showToast('Your resource was deleted.');
+      await loadAll();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to delete.');
+    } finally {
+      setActionLoading('');
+    }
+  };
 
   return (
     <Layout
@@ -312,7 +323,6 @@ export default function ResourcesPage() {
       right={
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge value="Available" />
-          {user?.isAdmin && <StatusBadge value="Verified" />}
           <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm text-slate-700">
             <Box className="h-4 w-4" />
             Available resources
@@ -320,6 +330,60 @@ export default function ResourcesPage() {
         </div>
       }
     >
+      <div className="mb-6">
+        <Panel title="My resource requests">
+          {myApplications.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+              You have not requested any resource yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myApplications.map((item, idx) => (
+                <div key={`${item.resourceId}-${idx}`} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.resourceName}</p>
+                      <p className="text-sm text-slate-500">
+                        Owner: {item.ownerName} • Community: {item.community}
+                      </p>
+                    </div>
+                    <StatusBadge value={item.status} />
+                  </div>
+
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">
+                      Requested: {item.requestedQuantity} {item.unit}
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">
+                      Address: {item.applicantAddress}
+                    </div>
+                  </div>
+
+                  {item.status === 'Approved' ? (
+                    <div className="mt-3 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-700">
+                      Your request has been approved. {item.approvedQuantity} {item.unit} of{' '}
+                      <strong>{item.resourceName}</strong> will be handed over as soon as possible.
+                    </div>
+                  ) : item.status === 'Rejected' ? (
+                    <div className="mt-3 rounded-2xl bg-rose-50 p-4 text-sm text-rose-700">
+                      Your request was rejected.
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-700">
+                      Your request is still pending admin review.
+                    </div>
+                  )}
+
+                  {item.message ? (
+                    <p className="mt-3 text-sm text-slate-600">Message: {item.message}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+      </div>
+
       {user?.isAdmin && (
         <div className="mb-6">
           <Panel title="Admin application review">
@@ -330,46 +394,58 @@ export default function ResourcesPage() {
             ) : (
               <div className="space-y-4">
                 {pendingAdminOffers.map((offer) => {
-                  const pendingApplications = offer.applications.filter((app) => app.status === 'Pending');
+                  const pendingApps = offer.applications.filter((app) => app.status === 'Pending');
 
                   return (
                     <div key={offer._id} className="rounded-3xl border border-slate-200 p-4">
-                      <h3 className="text-lg font-bold text-slate-900">{offer.resourceName}</h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Owner: {offer.ownerName} • Community: {offer.community}
-                      </p>
+                      <h3 className="text-lg font-bold text-slate-900">
+                        {offer.resourceName} ({offer.remainingQuantity} {offer.unit} remaining)
+                      </h3>
 
                       <div className="mt-4 space-y-3">
-                        {pendingApplications.map((app) => (
+                        {pendingApps.map((app) => (
                           <div key={app._id} className="rounded-2xl bg-slate-50 p-4">
                             <p className="font-semibold text-slate-900">{app.applicantName}</p>
-                            <p className="text-sm text-slate-600">{app.applicantPhone}</p>
-                            {app.message ? (
-                              <p className="mt-2 text-sm text-slate-700">Message: {app.message}</p>
-                            ) : null}
-                            <p className="mt-2 text-xs text-slate-400">
-                              Applied at: {new Date(app.appliedAt).toLocaleString()}
+                            <p className="text-sm text-slate-600">Phone: {app.applicantPhone}</p>
+                            <p className="text-sm text-slate-600">Address: {app.applicantAddress}</p>
+                            <p className="text-sm text-slate-600">
+                              Requested: {app.requestedQuantity} {offer.unit}
                             </p>
 
-                            <div className="mt-3 flex flex-wrap gap-2">
+                            <div className="mt-3 flex flex-wrap items-center gap-3">
+                              <input
+                                type="number"
+                                min="1"
+                                max={Math.min(app.requestedQuantity, offer.remainingQuantity)}
+                                defaultValue={app.requestedQuantity}
+                                id={`approveQty-${app._id}`}
+                                className="w-28 rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                              />
+
                               <button
                                 type="button"
-                                onClick={() => handleApprove(offer._id, app._id)}
+                                onClick={() =>
+                                  handleApprove(
+                                    offer._id,
+                                    app._id,
+                                    document.getElementById(`approveQty-${app._id}`).value
+                                  )
+                                }
                                 disabled={actionLoading === `approve-${app._id}`}
-                                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
                               >
                                 <ShieldCheck className="h-4 w-4" />
-                                {actionLoading === `approve-${app._id}` ? 'Approving...' : 'Approve'}
+                                Approve
                               </button>
 
                               <button
                                 type="button"
                                 onClick={() => handleReject(offer._id, app._id)}
                                 disabled={actionLoading === `reject-${app._id}`}
-                                className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                                className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
                               >
                                 <XCircle className="h-4 w-4" />
-                                {actionLoading === `reject-${app._id}` ? 'Rejecting...' : 'Reject'}
+                                Reject
                               </button>
                             </div>
                           </div>
@@ -447,37 +523,12 @@ export default function ResourcesPage() {
               </label>
             </div>
 
-            <FormField
-              label="Community"
-              name="community"
-              value={form.community}
-              onChange={handleChange}
-              required
-            />
-
-            <FormField
-              label="Phone"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              required
-            />
+            <FormField label="Community" name="community" value={form.community} onChange={handleChange} required />
+            <FormField label="Phone" name="phone" value={form.phone} onChange={handleChange} required />
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                label="Latitude"
-                name="latitude"
-                value={form.latitude}
-                onChange={handleChange}
-                required
-              />
-              <FormField
-                label="Longitude"
-                name="longitude"
-                value={form.longitude}
-                onChange={handleChange}
-                required
-              />
+              <FormField label="Latitude" name="latitude" value={form.latitude} onChange={handleChange} required />
+              <FormField label="Longitude" name="longitude" value={form.longitude} onChange={handleChange} required />
             </div>
 
             <label className="block">
@@ -513,7 +564,7 @@ export default function ResourcesPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
             >
               {submitting ? 'Submitting...' : 'Publish resource offer'}
             </button>
@@ -550,13 +601,13 @@ export default function ResourcesPage() {
                 offers.map((offer) => {
                   const ownerId = getOwnerId(offer);
                   const isOwner = ownerId === user?._id;
-                  const alreadyApplied =
-                    Array.isArray(offer?.applications) &&
-                    offer.applications.some(
-                      (app) =>
-                        (typeof app.applicant === 'string' ? app.applicant : app.applicant?._id) === user?._id
-                    );
-                  const canApply = !isOwner && offer.status === 'Available' && !alreadyApplied;
+                  const canApply = !isOwner && offer.remainingQuantity > 0 && offer.status === 'Available';
+
+                  const currentApply = applyForm[offer._id] || {
+                    requestedQuantity: 1,
+                    applicantAddress: user?.address || '',
+                    message: '',
+                  };
 
                   return (
                     <article key={offer._id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -586,7 +637,9 @@ export default function ResourcesPage() {
 
                           <div className="mt-4 grid gap-2 sm:grid-cols-2">
                             <div className="rounded-3xl bg-slate-50 p-3 text-sm text-slate-600">
-                              <span className="font-semibold text-slate-900">Qty:</span> {offer.quantity} {offer.unit}
+                              <span className="font-semibold text-slate-900">Total Qty:</span> {offer.quantity} {offer.unit}
+                              <br />
+                              <span className="font-semibold text-slate-900">Remaining:</span> {offer.remainingQuantity} {offer.unit}
                             </div>
                             <div className="rounded-3xl bg-slate-50 p-3 text-sm text-slate-600">
                               <span className="font-semibold text-slate-900">Available</span>
@@ -612,52 +665,63 @@ export default function ResourcesPage() {
                             </div>
                           </div>
 
-                          {offer.status === 'Reserved' && offer.assignedApplicantName ? (
-                            <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
-                              Assigned to: <strong>{offer.assignedApplicantName}</strong>
-                            </div>
-                          ) : null}
+                          {canApply && (
+                            <div className="mt-4 space-y-3">
+                              <input
+                                type="number"
+                                min="1"
+                                max={offer.remainingQuantity}
+                                value={currentApply.requestedQuantity}
+                                onChange={(e) =>
+                                  handleApplyFieldChange(offer._id, 'requestedQuantity', e.target.value)
+                                }
+                                placeholder="Requested quantity"
+                                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                              />
 
-                          <div className="mt-4 flex flex-col gap-3">
-                            {canApply && (
-                              <>
-                                <textarea
-                                  value={applyMessages[offer._id] || ''}
-                                  onChange={(e) => handleApplyMessageChange(offer._id, e.target.value)}
-                                  rows="2"
-                                  placeholder="Optional message for admin"
-                                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleApply(offer._id)}
-                                  disabled={actionLoading === `apply-${offer._id}`}
-                                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
-                                >
-                                  <HandHeart className="h-4 w-4" />
-                                  {actionLoading === `apply-${offer._id}` ? 'Applying...' : 'Apply'}
-                                </button>
-                              </>
-                            )}
+                              <input
+                                type="text"
+                                value={currentApply.applicantAddress}
+                                onChange={(e) =>
+                                  handleApplyFieldChange(offer._id, 'applicantAddress', e.target.value)
+                                }
+                                placeholder="Your address"
+                                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                              />
 
-                            {alreadyApplied && (
-                              <div className="rounded-2xl bg-blue-50 p-3 text-sm text-blue-700">
-                                You already applied. Waiting for admin review.
-                              </div>
-                            )}
+                              <textarea
+                                value={currentApply.message}
+                                onChange={(e) =>
+                                  handleApplyFieldChange(offer._id, 'message', e.target.value)
+                                }
+                                rows="2"
+                                placeholder="Give me your contact number for faster communication (optional)"
+                                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                              />
 
-                            {isOwner && (
                               <button
                                 type="button"
-                                onClick={() => handleDelete(offer._id)}
-                                disabled={actionLoading === `delete-${offer._id}`}
-                                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-60"
+                                onClick={() => handleApply(offer._id)}
+                                disabled={actionLoading === `apply-${offer._id}`}
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white"
                               >
-                                <Trash2 className="h-4 w-4" />
-                                {actionLoading === `delete-${offer._id}` ? 'Deleting...' : 'Delete my resource'}
+                                <HandHeart className="h-4 w-4" />
+                                Apply
                               </button>
-                            )}
-                          </div>
+                            </div>
+                          )}
+
+                          {isOwner && (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(offer._id)}
+                              disabled={actionLoading === `delete-${offer._id}`}
+                              className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete my resource
+                            </button>
+                          )}
                         </div>
                       </div>
                     </article>

@@ -17,6 +17,21 @@ const applicationSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    applicantAddress: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    requestedQuantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    approvedQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     message: {
       type: String,
       default: "",
@@ -81,6 +96,11 @@ const resourceOfferSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
+    remainingQuantity: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
     unit: {
       type: String,
       default: "items",
@@ -105,15 +125,6 @@ const resourceOfferSchema = new mongoose.Schema(
       type: String,
       enum: ["Available", "Reserved", "Unavailable"],
       default: "Available",
-    },
-    assignedTo: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
-    assignedApplicantName: {
-      type: String,
-      default: "",
     },
     latitude: {
       type: Number,
