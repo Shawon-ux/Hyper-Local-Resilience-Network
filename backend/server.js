@@ -24,6 +24,7 @@ const microTaskRoutes = require("./routes/microTaskRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const matchingRoutes = require("./routes/matchingRoutes");
 const reputationRoutes = require("./routes/reputationRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -47,7 +48,7 @@ app.use(
     credentials: true,
   })
 );
-
+app.use("/api/notifications", notificationRoutes);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());

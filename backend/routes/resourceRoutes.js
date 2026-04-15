@@ -3,6 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const router = express.Router();
 const ResourceOffer = require("../models/ResourceOffer");
+const Notification = require("../models/Notification");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
 
 const uploadDir = path.join(__dirname, "../uploads");
@@ -36,6 +37,7 @@ router.post("/", protect, async (req, res) => {
       userName: req.user.name,
       phone: req.body.phone || req.user.phone,
       community: req.body.community,
+      areaName: req.body.areaName,
       resourceName: req.body.resourceName,
       quantity,
       remainingQuantity: quantity,
@@ -86,7 +88,6 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-// NEW: logged-in user can see only their own requests
 router.get("/my-applications", protect, async (req, res) => {
   try {
     const offers = await ResourceOffer.find({
@@ -102,13 +103,16 @@ router.get("/my-applications", protect, async (req, res) => {
     offers.forEach((offer) => {
       offer.applications.forEach((app) => {
         const applicantId =
-          typeof app.applicant === "object" ? app.applicant?._id?.toString() : app.applicant?.toString();
+          typeof app.applicant === "object"
+            ? app.applicant?._id?.toString()
+            : app.applicant?.toString();
 
         if (applicantId === req.user._id.toString()) {
           myRequests.push({
             resourceId: offer._id,
             resourceName: offer.resourceName,
             community: offer.community,
+            areaName: offer.areaName,
             unit: offer.unit,
             ownerName: offer.ownerName,
             status: app.status,
@@ -262,6 +266,31 @@ router.patch("/:resourceId/applications/:applicationId/approve", protect, adminO
 
     await offer.save();
 
+    await Notification.create([
+      {
+        user: application.applicant,
+        type: "RESOURCE_APPROVED_FOR_APPLICANT",
+        title: "Resource request approved",
+        message: `Your request for ${approveQuantity} ${offer.unit} of ${offer.resourceName} has been approved. Your requested product will be handed over as soon as possible.`,
+        meta: {
+          resourceId: offer._id,
+          applicantId: application.applicant,
+          ownerId: offer.postedBy,
+        },
+      },
+      {
+        user: offer.postedBy,
+        type: "RESOURCE_APPROVED_FOR_SHARER",
+        title: "Your shared resource has an approved request",
+        message: `${application.applicantName}'s request for ${approveQuantity} ${offer.unit} of ${offer.resourceName} was approved. Delivery/pickup address: ${application.applicantAddress}`,
+        meta: {
+          resourceId: offer._id,
+          applicantId: application.applicant,
+          ownerId: offer.postedBy,
+        },
+      },
+    ]);
+
     const updated = await ResourceOffer.findById(offer._id)
       .populate("postedBy", "name email phone isAdmin")
       .populate("applications.applicant", "name email phone")
@@ -304,6 +333,18 @@ router.patch("/:resourceId/applications/:applicationId/reject", protect, adminOn
     application.reviewedBy = req.user._id;
 
     await offer.save();
+
+    await Notification.create({
+      user: application.applicant,
+      type: "RESOURCE_REJECTED_FOR_APPLICANT",
+      title: "Resource request rejected",
+      message: `Your request for ${offer.resourceName} was rejected.`,
+      meta: {
+        resourceId: offer._id,
+        applicantId: application.applicant,
+        ownerId: offer.postedBy,
+      },
+    });
 
     const updated = await ResourceOffer.findById(offer._id)
       .populate("postedBy", "name email phone isAdmin")

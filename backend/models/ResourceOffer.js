@@ -86,6 +86,11 @@ const resourceOfferSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    areaName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     resourceName: {
       type: String,
       required: true,
