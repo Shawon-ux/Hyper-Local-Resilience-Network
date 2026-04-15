@@ -1,6 +1,24 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+const skillSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: [true, 'Please add a skill name'], trim: true },
+    category: { type: String, trim: true, default: 'General' },
+    level: {
+      type: String,
+      enum: ['beginner', 'intermediate', 'expert'],
+      default: 'intermediate',
+    },
+    available: { type: Boolean, default: true },
+    yearsOfExperience: { type: Number, default: 0, min: 0 },
+    hourlyRate: { type: mongoose.Schema.Types.Decimal128, default: 0.0 },
+    lastVerified: { type: Date, default: Date.now },
+    deleted: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -49,6 +67,7 @@ const userSchema = new mongoose.Schema(
         available: { type: Boolean, default: true },
       },
     ],
+    skills: [skillSchema],
     reputationScore: { type: Number, default: 0 },
   },
   { timestamps: true }

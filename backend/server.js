@@ -21,6 +21,7 @@ const safeRoutes = require("./routes/safeRoutes");
 const resourceRoutes = require("./routes/resourceRoutes");
 const skillRoutes = require("./routes/skillRoutes");
 const microTaskRoutes = require("./routes/microTaskRoutes");
+const taskRoutes = require("./routes/taskRoutes");
 const matchingRoutes = require("./routes/matchingRoutes");
 const reputationRoutes = require("./routes/reputationRoutes");
 
@@ -97,6 +98,7 @@ app.use("/api/safe-status", safeRoutes);
 app.use("/api/resources", resourceRoutes);
 app.use("/api/skills", skillRoutes);
 app.use("/api/microtasks", microTaskRoutes);
+app.use("/api/tasks", taskRoutes);
 app.use("/api/matching", matchingRoutes);
 app.use("/api/reputation", reputationRoutes);
 
