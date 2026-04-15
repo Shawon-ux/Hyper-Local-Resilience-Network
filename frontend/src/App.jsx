@@ -1,3 +1,11 @@
+import { Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import SafeStatusModulePage from './pages/SafeStatusModulePage';
+import ResourcesPage from './pages/ResourcesPage';
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -67,6 +75,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <SafeStatusModulePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/resources"
+            element={
+              <ProtectedRoute>
+                <ResourcesPage />
               </ProtectedRoute>
             }
           />
