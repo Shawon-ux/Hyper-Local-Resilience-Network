@@ -1,11 +1,3 @@
-import { Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import ProtectedRoute from './components/ProtectedRoute';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import SafeStatusModulePage from './pages/SafeStatusModulePage';
-import ResourcesPage from './pages/ResourcesPage';
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -16,6 +8,7 @@ import RegisterPage from "./pages/RegisterPage.jsx";
 import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
 import CreateTaskPage from "./pages/CreateTaskPage.jsx";
 import MyTasksPage from "./pages/MyTasksPage.jsx";
+import ResourcesPage from "./pages/ResourcesPage.jsx";
 
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
