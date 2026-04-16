@@ -43,8 +43,9 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Please add an address'],
     },
     location: {
-      lat: { type: Number, required: true },
-      lng: { type: Number, required: true },
+      type: String,
+      required: [true, 'Please add a location'],
+      trim: true,
     },
     password: {
       type: String,

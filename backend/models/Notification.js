@@ -13,6 +13,7 @@ const notificationSchema = new mongoose.Schema(
         "RESOURCE_APPROVED_FOR_APPLICANT",
         "RESOURCE_APPROVED_FOR_SHARER",
         "RESOURCE_REJECTED_FOR_APPLICANT",
+        "REQUEST_APPROVED_AVAILABLE",
       ],
       required: true,
     },
@@ -42,6 +43,16 @@ const notificationSchema = new mongoose.Schema(
         default: null,
       },
       ownerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      requestId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "CriticalRequest",
+        default: null,
+      },
+      requesterId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         default: null,
