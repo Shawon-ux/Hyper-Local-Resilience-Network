@@ -41,6 +41,7 @@ const Navbar = () => {
     { name: 'Safe Status', path: '/safe-status', icon: Shield }
     { name: "Home", path: "/", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+    { name: "Help Center", path: "/requests", icon: List },
     { name: "Profile", path: "/profile", icon: User },
     { name: "Community", path: "/community", icon: Users },
     { name: "Safe Status", path: "/safe-status", icon: Shield },

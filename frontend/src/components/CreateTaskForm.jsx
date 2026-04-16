@@ -14,7 +14,7 @@ const CreateTaskForm = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState("Medium");
-  const [location, setLocation] = useState({ lat: "", lng: "" });
+  const [location, setLocation] = useState("");
   const [locationSource, setLocationSource] = useState("profile");
   const [geoStatus, setGeoStatus] = useState("");
   const [suggestedSkills, setSuggestedSkills] = useState([]);
@@ -55,15 +55,15 @@ const CreateTaskForm = () => {
   }, [debouncedDescription]);
 
   useEffect(() => {
-    if (user?.location?.lat != null && user?.location?.lng != null) {
-      setLocation({ lat: user.location.lat, lng: user.location.lng });
+    if (user?.location) {
+      setLocation(user.location);
       setLocationSource("profile");
     }
   }, [user?.location]);
 
   const handleUseProfileLocation = () => {
-    if (user?.location?.lat != null && user?.location?.lng != null) {
-      setLocation({ lat: user.location.lat, lng: user.location.lng });
+    if (user?.location) {
+      setLocation(user.location);
       setLocationSource("profile");
       setError("");
     } else {
@@ -71,31 +71,7 @@ const CreateTaskForm = () => {
     }
   };
 
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Browser geolocation is not available.");
-      return;
-    }
 
-    setGeoStatus("Requesting current location...");
-    setError("");
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-        setLocationSource("current");
-        setGeoStatus("");
-      },
-      (geoError) => {
-        setError("Unable to determine current location.");
-        setGeoStatus("");
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-    );
-  };
 
   const toggleSkill = (skill) => {
     setSelectedSkills((prev) =>
@@ -135,38 +111,20 @@ const CreateTaskForm = () => {
     if (
       !title.trim() ||
       !description.trim() ||
-      location.lat === "" ||
-      location.lng === ""
+      !location.trim()
     ) {
       setError("Please enter title, description, and select a location.");
-      return;
-    }
-
-    const taskLocation = {
-      lat: Number(location.lat),
-      lng: Number(location.lng),
-    };
-
-    if (Number.isNaN(taskLocation.lat) || Number.isNaN(taskLocation.lng)) {
-      setError(
-        "Selected location is invalid. Please choose a valid profile or current location.",
-      );
       return;
     }
 
     setLoading(true);
 
     try {
-      const taskLocation = {
-        lat: Number(location.lat),
-        lng: Number(location.lng),
-      };
-
       await createMicroTask({
         title,
         description,
         urgency,
-        location: taskLocation,
+        location,
         selectedSkills,
       });
 
@@ -174,7 +132,7 @@ const CreateTaskForm = () => {
       setTitle("");
       setDescription("");
       setUrgency("Medium");
-      setLocation({ lat: "", lng: "" });
+      setLocation("");
       setLocationSource("profile");
       setSelectedSkills([]);
       setCustomSkill("");
@@ -245,13 +203,6 @@ const CreateTaskForm = () => {
               >
                 Use profile location
               </button>
-              <button
-                type="button"
-                onClick={handleUseCurrentLocation}
-                className="rounded-2xl border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-              >
-                Use current location
-              </button>
             </div>
           </div>
 
@@ -266,19 +217,11 @@ const CreateTaskForm = () => {
                   : "Profile location"}
               </span>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-800">
-                <span className="block text-xs text-slate-500">Latitude</span>
-                <span>
-                  {location.lat !== "" ? location.lat : "Not selected"}
-                </span>
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-800">
-                <span className="block text-xs text-slate-500">Longitude</span>
-                <span>
-                  {location.lng !== "" ? location.lng : "Not selected"}
-                </span>
-              </div>
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-800">
+              <span className="block text-xs text-slate-500">Location</span>
+              <span>
+                {location || "Not selected"}
+              </span>
             </div>
             {geoStatus && <p className="text-sm text-slate-600">{geoStatus}</p>}
           </div>

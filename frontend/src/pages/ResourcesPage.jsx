@@ -131,12 +131,12 @@ export default function ResourcesPage() {
       loadAll().catch(() => {});
     };
 
-    ['resourceCreated', 'resourceUpdated', 'resourceDeleted'].forEach((event) =>
+    ['resourceCreated', 'resourceUpdated', 'resourceDeleted', 'requestApproved'].forEach((event) =>
       socket.on(event, refresh)
     );
 
     return () => {
-      ['resourceCreated', 'resourceUpdated', 'resourceDeleted'].forEach((event) =>
+      ['resourceCreated', 'resourceUpdated', 'resourceDeleted', 'requestApproved'].forEach((event) =>
         socket.off(event, refresh)
       );
       socket.disconnect();

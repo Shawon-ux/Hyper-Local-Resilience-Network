@@ -16,6 +16,12 @@ import RegisterPage from "./pages/RegisterPage.jsx";
 import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
 import CreateTaskPage from "./pages/CreateTaskPage.jsx";
 import MyTasksPage from "./pages/MyTasksPage.jsx";
+<<<<<<< Updated upstream
+=======
+import ResourcesPage from "./pages/ResourcesPage.jsx";
+import CreateRequestPage from "./pages/CreateRequestPage.jsx";
+import RequestsPage from "./pages/RequestsPage.jsx";
+>>>>>>> Stashed changes
 
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -66,6 +72,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <MyTasksPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/requests/new"
+            element={
+              <ProtectedRoute>
+                <CreateRequestPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/requests"
+            element={
+              <ProtectedRoute>
+                <RequestsPage />
               </ProtectedRoute>
             }
           />
