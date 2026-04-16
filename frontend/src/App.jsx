@@ -9,6 +9,7 @@ import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
 import CreateTaskPage from "./pages/CreateTaskPage.jsx";
 import MyTasksPage from "./pages/MyTasksPage.jsx";
 import ResourcesPage from "./pages/ResourcesPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
 import CreateRequestPage from "./pages/CreateRequestPage.jsx";
 import RequestsPage from "./pages/RequestsPage.jsx";
 
@@ -98,6 +99,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <ResourcesPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             }
           />

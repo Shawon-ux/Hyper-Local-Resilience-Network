@@ -8,7 +8,6 @@ import FormField from '../components/FormField';
 import StatusBadge from '../components/StatusBadge';
 import Toast from '../components/Toast';
 import {
-  Bell,
   Box,
   UploadCloud,
   Clock,
@@ -36,7 +35,6 @@ export default function ResourcesPage() {
   const [offers, setOffers] = useState([]);
   const [pendingAdminOffers, setPendingAdminOffers] = useState([]);
   const [myApplications, setMyApplications] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState('');
@@ -99,11 +97,6 @@ export default function ResourcesPage() {
     setMyApplications(data);
   };
 
-  const fetchNotifications = async () => {
-    const { data } = await api.get('/notifications/my');
-    setNotifications(data);
-  };
-
   const loadAll = async () => {
     setLoading(true);
     setError('');
@@ -113,7 +106,6 @@ export default function ResourcesPage() {
         fetchOffers(),
         fetchPendingAdminOffers(),
         fetchMyApplications(),
-        fetchNotifications(),
       ]);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load resource data.');
@@ -196,13 +188,6 @@ export default function ResourcesPage() {
         [field]: value,
       },
     }));
-  };
-
-  const markNotificationRead = async (id) => {
-    try {
-      await api.patch(`/notifications/${id}/read`);
-      await fetchNotifications();
-    } catch {}
   };
 
   const handleSubmit = async (e) => {
@@ -356,39 +341,6 @@ export default function ResourcesPage() {
         </div>
       }
     >
-      <div className="mb-6">
-        <Panel title="Notifications">
-          {notifications.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
-              No notifications yet.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {notifications.map((item) => (
-                <button
-                  key={item._id}
-                  type="button"
-                  onClick={() => markNotificationRead(item._id)}
-                  className={`w-full rounded-2xl border p-4 text-left ${
-                    item.isRead
-                      ? 'border-slate-200 bg-white'
-                      : 'border-blue-200 bg-blue-50'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <Bell className="mt-0.5 h-5 w-5 text-blue-600" />
-                    <div>
-                      <p className="font-semibold text-slate-900">{item.title}</p>
-                      <p className="mt-1 text-sm text-slate-600">{item.message}</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </Panel>
-      </div>
-
       <div className="mb-6">
         <Panel title="My resource requests">
           {myApplications.length === 0 ? (

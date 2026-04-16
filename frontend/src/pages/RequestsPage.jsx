@@ -29,7 +29,7 @@ const filterOptions = [
   { id: 'approved', label: 'Approved' },
   { id: 'in_progress', label: 'In progress' },
   { id: 'fulfilled', label: 'Fulfilled' },
-  { id: 'no_helper', label: 'Already helped' },
+  { id: 'no_helper', label: 'Not helped yet' },
 ];
 
 const RequestsPage = () => {
@@ -311,9 +311,16 @@ const RequestsPage = () => {
                           </div>
                           <div>
                             <p className="text-xs uppercase tracking-wide text-slate-500">Helper</p>
-                            <p className="mt-1 text-sm text-slate-800">
-                              {request.helper?.name || (request.status === 'approved' ? 'Not assigned yet' : 'TBD')}
-                            </p>
+                            <div className="mt-1 flex items-center gap-2">
+                              <p className="text-sm text-slate-800">
+                                {request.helper?.name || (request.status === 'approved' ? 'Not assigned yet' : 'TBD')}
+                              </p>
+                              {request.status === 'approved' && !request.helper && (
+                                <span className="inline-flex rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-medium border border-red-200">
+                                  Not helped yet
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div>
                             <p className="text-xs uppercase tracking-wide text-slate-500">Created</p>
