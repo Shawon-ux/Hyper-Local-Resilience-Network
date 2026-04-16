@@ -8,6 +8,7 @@ import FormField from '../components/FormField';
 import StatusBadge from '../components/StatusBadge';
 import Toast from '../components/Toast';
 import {
+  Bell,
   Box,
   UploadCloud,
   Clock,
@@ -35,6 +36,7 @@ export default function ResourcesPage() {
   const [offers, setOffers] = useState([]);
   const [pendingAdminOffers, setPendingAdminOffers] = useState([]);
   const [myApplications, setMyApplications] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState('');
@@ -51,6 +53,7 @@ export default function ResourcesPage() {
     availabilityEnd: '',
     usageConstraints: '',
     community: user?.address || '',
+    areaName: user?.address || '',
     phone: user?.phone || '',
     latitude: user?.location?.lat ?? '',
     longitude: user?.location?.lng ?? '',
@@ -87,7 +90,6 @@ export default function ResourcesPage() {
       setPendingAdminOffers([]);
       return;
     }
-
     const { data } = await api.get('/resources/admin/pending-applications');
     setPendingAdminOffers(data);
   };
@@ -97,12 +99,22 @@ export default function ResourcesPage() {
     setMyApplications(data);
   };
 
+  const fetchNotifications = async () => {
+    const { data } = await api.get('/notifications/my');
+    setNotifications(data);
+  };
+
   const loadAll = async () => {
     setLoading(true);
     setError('');
 
     try {
-      await Promise.all([fetchOffers(), fetchPendingAdminOffers(), fetchMyApplications()]);
+      await Promise.all([
+        fetchOffers(),
+        fetchPendingAdminOffers(),
+        fetchMyApplications(),
+        fetchNotifications(),
+      ]);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load resource data.');
     } finally {
@@ -118,6 +130,7 @@ export default function ResourcesPage() {
     setForm((prev) => ({
       ...prev,
       community: prev.community || user?.address || '',
+      areaName: prev.areaName || user?.address || '',
       phone: prev.phone || user?.phone || '',
       latitude: prev.latitude || user?.location?.lat || '',
       longitude: prev.longitude || user?.location?.lng || '',
@@ -185,6 +198,13 @@ export default function ResourcesPage() {
     }));
   };
 
+  const markNotificationRead = async (id) => {
+    try {
+      await api.patch(`/notifications/${id}/read`);
+      await fetchNotifications();
+    } catch {}
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -196,6 +216,11 @@ export default function ResourcesPage() {
 
     if (!form.community.trim()) {
       setError('Community is required.');
+      return;
+    }
+
+    if (!form.areaName.trim()) {
+      setError('Area name is required.');
       return;
     }
 
@@ -215,6 +240,7 @@ export default function ResourcesPage() {
       const body = {
         phone: form.phone || user?.phone || '',
         community: form.community,
+        areaName: form.areaName,
         resourceName: form.resourceName,
         quantity: Number(form.quantity),
         unit: form.unit,
@@ -331,6 +357,39 @@ export default function ResourcesPage() {
       }
     >
       <div className="mb-6">
+        <Panel title="Notifications">
+          {notifications.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+              No notifications yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {notifications.map((item) => (
+                <button
+                  key={item._id}
+                  type="button"
+                  onClick={() => markNotificationRead(item._id)}
+                  className={`w-full rounded-2xl border p-4 text-left ${
+                    item.isRead
+                      ? 'border-slate-200 bg-white'
+                      : 'border-blue-200 bg-blue-50'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <Bell className="mt-0.5 h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.title}</p>
+                      <p className="mt-1 text-sm text-slate-600">{item.message}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      <div className="mb-6">
         <Panel title="My resource requests">
           {myApplications.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
@@ -373,10 +432,6 @@ export default function ResourcesPage() {
                       Your request is still pending admin review.
                     </div>
                   )}
-
-                  {item.message ? (
-                    <p className="mt-3 text-sm text-slate-600">Message: {item.message}</p>
-                  ) : null}
                 </div>
               ))}
             </div>
@@ -524,6 +579,7 @@ export default function ResourcesPage() {
             </div>
 
             <FormField label="Community" name="community" value={form.community} onChange={handleChange} required />
+            <FormField label="Area name" name="areaName" value={form.areaName} onChange={handleChange} required />
             <FormField label="Phone" name="phone" value={form.phone} onChange={handleChange} required />
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -657,7 +713,7 @@ export default function ResourcesPage() {
                           <div className="mt-4 grid gap-3 sm:grid-cols-2">
                             <div className="rounded-3xl bg-slate-50 p-3 text-sm text-slate-600">
                               <MapPin className="mr-2 inline-block h-4 w-4" />
-                              {offer.latitude?.toFixed(4)}, {offer.longitude?.toFixed(4)}
+                              {offer.areaName}
                             </div>
                             <div className="rounded-3xl bg-slate-50 p-3 text-sm text-slate-600">
                               <Clock className="mr-2 inline-block h-4 w-4" />
@@ -695,7 +751,7 @@ export default function ResourcesPage() {
                                   handleApplyFieldChange(offer._id, 'message', e.target.value)
                                 }
                                 rows="2"
-                                placeholder="Give me your contact number for faster communication (optional)"
+                                placeholder="Optional message for admin"
                                 className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
                               />
 
