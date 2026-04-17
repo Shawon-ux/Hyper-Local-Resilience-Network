@@ -53,11 +53,12 @@ export default function ResourcesPage() {
     community: user?.address || '',
     areaName: user?.address || '',
     phone: user?.phone || '',
-    latitude: user?.location?.lat ?? '',
-    longitude: user?.location?.lng ?? '',
     photoData: '',
     photoName: '',
   });
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [geoStatus, setGeoStatus] = useState('');
 
   const stats = useMemo(() => {
     const available = offers.filter((offer) => offer.status === 'Available').length;
@@ -124,10 +125,45 @@ export default function ResourcesPage() {
       community: prev.community || user?.address || '',
       areaName: prev.areaName || user?.address || '',
       phone: prev.phone || user?.phone || '',
-      latitude: prev.latitude || user?.location?.lat || '',
-      longitude: prev.longitude || user?.location?.lng || '',
     }));
+    
+    // Auto-capture geolocation on mount
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+          setGeoStatus('Location captured for proximity matching.');
+        },
+        () => {
+          setGeoStatus('Auto location capture failed. Click the location icon to capture manually.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      setGeoStatus('Geolocation not available. Click the location icon if your browser supports it.');
+    }
   }, [user]);
+
+  const captureLocation = () => {
+    if ('geolocation' in navigator) {
+      setGeoStatus('Capturing location...');
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+          setGeoStatus('✓ Location captured successfully for proximity matching.');
+        },
+        (error) => {
+          console.error(error);
+          setGeoStatus('✗ Failed to capture location. Please enable location permissions.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      setGeoStatus('Geolocation not supported in your browser.');
+    }
+  };
 
   useEffect(() => {
     socket.connect();
@@ -214,11 +250,6 @@ export default function ResourcesPage() {
       return;
     }
 
-    if (!form.latitude || !form.longitude) {
-      setError('Latitude and longitude are required.');
-      return;
-    }
-
     setSubmitting(true);
 
     try {
@@ -232,8 +263,8 @@ export default function ResourcesPage() {
         availabilityStart: form.availabilityStart,
         availabilityEnd: form.availabilityEnd,
         usageConstraints: form.usageConstraints,
-        latitude: Number(form.latitude),
-        longitude: Number(form.longitude),
+        latitude: latitude !== null ? latitude : undefined,
+        longitude: longitude !== null ? longitude : undefined,
         photoData: form.photoData,
         photoName: form.photoName,
       };
@@ -249,10 +280,13 @@ export default function ResourcesPage() {
         availabilityStart: '',
         availabilityEnd: '',
         usageConstraints: '',
+        community: user?.address || '',
+        areaName: user?.address || '',
         photoData: '',
         photoName: '',
       }));
       setPreviewUrl('');
+
       await loadAll();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to submit resource offer.');
@@ -531,13 +565,30 @@ export default function ResourcesPage() {
             </div>
 
             <FormField label="Community" name="community" value={form.community} onChange={handleChange} required />
-            <FormField label="Area name" name="areaName" value={form.areaName} onChange={handleChange} required />
-            <FormField label="Phone" name="phone" value={form.phone} onChange={handleChange} required />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Latitude" name="latitude" value={form.latitude} onChange={handleChange} required />
-              <FormField label="Longitude" name="longitude" value={form.longitude} onChange={handleChange} required />
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <FormField label="Area name (Your location)" name="areaName" value={form.areaName} onChange={handleChange} required />
+              </div>
+              <button
+                type="button"
+                onClick={captureLocation}
+                className="mb-0 flex h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-white transition hover:bg-blue-700"
+                title="Capture current location"
+              >
+                <MapPin className="h-4 w-4" />
+              </button>
             </div>
+            {(!geoStatus.includes('✓')) && (
+              <div className="rounded-2xl border-2 border-orange-300 bg-orange-50 p-3 text-sm font-medium text-orange-800">
+                ⚠️ <strong>Important:</strong> Click the location icon to capture your coordinates for proximity matching.
+              </div>
+            )}
+            {geoStatus && (
+              <p className={`text-sm ${geoStatus.includes('✓') ? 'text-emerald-600' : geoStatus.includes('✗') ? 'text-rose-600' : 'text-blue-600'}`}>
+                {geoStatus}
+              </p>
+            )}
+            <FormField label="Phone" name="phone" value={form.phone} onChange={handleChange} required />
 
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-slate-700">Usage constraints (optional)</span>

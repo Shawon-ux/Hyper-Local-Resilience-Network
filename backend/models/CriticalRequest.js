@@ -46,6 +46,14 @@ const criticalRequestSchema = new mongoose.Schema(
       required: [true, 'Please provide a contact number for the requester'],
       trim: true,
     },
+    latitude: {
+      type: Number,
+      default: null,
+    },
+    longitude: {
+      type: Number,
+      default: null,
+    },
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

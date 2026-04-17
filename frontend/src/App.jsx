@@ -12,6 +12,7 @@ import ResourcesPage from "./pages/ResourcesPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import CreateRequestPage from "./pages/CreateRequestPage.jsx";
 import RequestsPage from "./pages/RequestsPage.jsx";
+import MatchingPage from "./pages/MatchingPage.jsx";
 
 
 const DashboardPage = () => (
@@ -81,6 +82,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <RequestsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/matching"
+            element={
+              <ProtectedRoute>
+                <MatchingPage />
               </ProtectedRoute>
             }
           />

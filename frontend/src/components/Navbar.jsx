@@ -56,7 +56,7 @@ const Navbar = () => {
     { name: "Home", path: "/", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Help Center", path: "/requests", icon: List },
-    { name: "Notifications", path: "/notifications", icon: Bell },
+    { name: "Matching", path: "/matching", icon: Map },
     { name: "Profile", path: "/profile", icon: User },
     { name: "Resources", path: "/resources", icon: Box },
     { name: "Community", path: "/community", icon: Users },
@@ -89,7 +89,22 @@ const Navbar = () => {
             </div>
 
             {/* User section */}
-            <div className="hidden md:flex md:items-center">
+            <div className="hidden md:flex md:items-center md:gap-3">
+              {user && (
+                <Link
+                  to="/notifications"
+                  className="relative inline-flex items-center rounded-full p-2 text-gray-600 hover:bg-gray-100"
+                  aria-label="Notifications"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-semibold text-white">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
+
               {user ? (
                 <div className="relative ml-3">
                   <button

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { createCriticalRequest } from '../services/requestService';
+import { MapPin } from 'lucide-react';
 
 const urgencyOptions = ['Low', 'Medium', 'High', 'Critical'];
 
@@ -14,9 +15,32 @@ const CreateRequestPage = () => {
   const [exactLocation, setExactLocation] = useState('');
   const [contactNumber, setContactNumber] = useState('');
   const [location, setLocation] = useState('');
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [geoStatus, setGeoStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const captureLocation = () => {
+    if ('geolocation' in navigator) {
+      setGeoStatus('Capturing location...');
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+          setGeoStatus('✓ Location captured successfully for proximity matching.');
+        },
+        (error) => {
+          console.error(error);
+          setGeoStatus('✗ Failed to capture location. Please enable location permissions.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      setGeoStatus('Geolocation not supported in your browser.');
+    }
+  };
 
   useEffect(() => {
     if (user?.phone) {
@@ -24,6 +48,22 @@ const CreateRequestPage = () => {
     }
     if (user?.location) {
       setLocation(user.location);
+    }
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+          setGeoStatus('Location captured for proximity matching.');
+        },
+        () => {
+          setGeoStatus('Auto location capture failed. Click the location icon to capture manually.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      setGeoStatus('Geolocation not available. Click the location icon if your browser supports it.');
     }
   }, [user]);
 
@@ -49,6 +89,8 @@ const CreateRequestPage = () => {
         exactLocation,
         contactNumber,
         location,
+        latitude,
+        longitude,
       });
       setSuccess('Your request was submitted and is pending admin approval.');
       setTitle('');
@@ -121,14 +163,26 @@ const CreateRequestPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Location Name</label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Dhaka Meherpur"
-              className="mt-2 block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700">Location Name</label>
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Dhaka Meherpur"
+                  className="mt-2 block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={captureLocation}
+                className="mb-0 flex h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-white transition hover:bg-blue-700"
+                title="Capture current location"
+              >
+                <MapPin className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <div>
@@ -145,6 +199,23 @@ const CreateRequestPage = () => {
               ))}
             </select>
           </div>
+
+          {(!geoStatus.includes('✓')) && (
+            <div className="rounded-3xl border-2 border-orange-300 bg-orange-50 p-4 text-sm font-medium text-orange-800">
+              ⚠️ <strong>Important:</strong> Click the location icon to capture your coordinates for proximity matching with resources and helpers.
+            </div>
+          )}
+          {geoStatus && (
+            <div className={`rounded-3xl p-4 text-sm ${
+              geoStatus.includes('✓') 
+                ? 'bg-emerald-50 text-emerald-700' 
+                : geoStatus.includes('✗') 
+                ? 'bg-rose-50 text-rose-700' 
+                : 'bg-blue-50 text-blue-700'
+            }`}>
+              {geoStatus}
+            </div>
+          )}
 
           {error && <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
           {success && <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700">{success}</div>}

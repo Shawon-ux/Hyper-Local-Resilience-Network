@@ -4,6 +4,7 @@ const fs = require("fs");
 const router = express.Router();
 const ResourceOffer = require("../models/ResourceOffer");
 const Notification = require("../models/Notification");
+const matchingController = require("../controllers/matchingController");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
 
 const uploadDir = path.join(__dirname, "../uploads");
@@ -45,8 +46,8 @@ router.post("/", protect, async (req, res) => {
       availabilityStart: req.body.availabilityStart,
       availabilityEnd: req.body.availabilityEnd,
       usageConstraints: req.body.usageConstraints || "",
-      latitude: Number(req.body.latitude),
-      longitude: Number(req.body.longitude),
+      latitude: req.body.latitude !== undefined ? Number(req.body.latitude) : null,
+      longitude: req.body.longitude !== undefined ? Number(req.body.longitude) : null,
       photoUrl,
       status: "Available",
       applications: [],
@@ -54,6 +55,8 @@ router.post("/", protect, async (req, res) => {
 
     const offer = new ResourceOffer(payload);
     const savedOffer = await offer.save();
+
+    await matchingController.notifyProximityMatchesForOffer(savedOffer, req.app.get("io"));
 
     const populated = await ResourceOffer.findById(savedOffer._id)
       .populate("postedBy", "name email phone isAdmin")

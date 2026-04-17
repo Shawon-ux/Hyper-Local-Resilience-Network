@@ -17,6 +17,8 @@ const notificationSchema = new mongoose.Schema(
         "REQUEST_PENDING_APPROVAL",
         "REQUEST_APPROVED_FOR_REQUESTER",
         "REQUEST_REJECTED_FOR_REQUESTER",
+        "PROXIMITY_MATCH_FOUND_FOR_REQUESTER",
+        "PROXIMITY_MATCH_FOUND_FOR_OWNER",
       ],
       required: true,
     },

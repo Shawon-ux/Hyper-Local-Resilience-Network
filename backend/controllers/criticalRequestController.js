@@ -2,6 +2,7 @@ const CriticalRequest = require('../models/CriticalRequest');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { sendRejectionSMS, sendApprovalSMS } = require('../utils/sms');
+const { notifyProximityMatchesForRequest } = require('./matchingController');
 
 const urgencyPriority = {
   Critical: 4,
@@ -26,11 +27,14 @@ const formatRequest = (request) => ({
 
 exports.createRequest = async (req, res) => {
   try {
-    const { title, description, urgency, location, exactLocation, contactNumber } = req.body;
+    const { title, description, urgency, location, exactLocation, contactNumber, latitude, longitude } = req.body;
 
     if (!title?.trim() || !description?.trim() || !location?.trim() || !exactLocation?.trim() || !contactNumber?.trim()) {
       return res.status(400).json({ message: 'Title, description, location, exact location, and contact number are required.' });
     }
+
+    const parsedLatitude = latitude !== undefined && latitude !== null ? Number(latitude) : null;
+    const parsedLongitude = longitude !== undefined && longitude !== null ? Number(longitude) : null;
 
     const request = await CriticalRequest.create({
       title: title.trim(),
@@ -40,6 +44,8 @@ exports.createRequest = async (req, res) => {
       location: location.trim(),
       exactLocation: exactLocation.trim(),
       contactNumber: contactNumber.trim(),
+      latitude: Number.isFinite(parsedLatitude) ? parsedLatitude : null,
+      longitude: Number.isFinite(parsedLongitude) ? parsedLongitude : null,
     });
 
     // Create notification for requester - request pending approval
@@ -188,6 +194,8 @@ exports.approveRequest = async (req, res) => {
     await request.populate('postedBy', 'name email location phone');
     await request.populate('helper', 'name email');
     await request.populate('approvedBy', 'name email');
+
+    await notifyProximityMatchesForRequest(request, req.app.get('io'));
 
     req.app.get('io')?.emit('requestApproved', { requestId: request._id, title: request.title });
 
