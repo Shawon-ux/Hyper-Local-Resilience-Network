@@ -1,3 +1,11 @@
+import { Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
+import HomePage from './pages/HomePage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
+import SafeStatusModulePage from './pages/SafeStatusModulePage.jsx';
+import WeatherAlertsPage from './pages/WeatherAlertsPage.jsx';
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -105,6 +113,10 @@ function App() {
           />
 
           <Route
+            path="/weather-alerts"
+            element={
+              <ProtectedRoute>
+                <WeatherAlertsPage />
             path="/resources"
             element={
               <ProtectedRoute>

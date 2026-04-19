@@ -24,6 +24,7 @@ const microTaskRoutes = require("./routes/microTaskRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const matchingRoutes = require("./routes/matchingRoutes");
 const reputationRoutes = require("./routes/reputationRoutes");
+const alertRoutes = require("./routes/alertRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const criticalRequestRoutes = require("./routes/criticalRequestRoutes");
 
@@ -105,6 +106,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/requests", criticalRequestRoutes);
 app.use("/api/matching", matchingRoutes);
 app.use("/api/reputation", reputationRoutes);
+app.use("/api/alerts", alertRoutes);
 
 // Socket.io
 io.on("connection", (socket) => {
