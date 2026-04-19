@@ -6,7 +6,6 @@ import {
   TileLayer,
   CircleMarker,
   useMap,
-  useMapEvents,
 } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -68,21 +67,6 @@ function pickLng(item) {
   return Number(item?.longitude ?? item?.location?.lng ?? item?.location?.longitude);
 }
 
-function ClickHandler({ onLocationSelect }) {
-  useMapEvents({
-    click(e) {
-      if (onLocationSelect) {
-        onLocationSelect({
-          lat: e.latlng.lat,
-          lng: e.latlng.lng,
-        });
-      }
-    },
-  });
-
-  return null;
-}
-
 function Recenter({ center }) {
   const map = useMap();
 
@@ -103,8 +87,6 @@ export default function MapView({
   reports = [],
   center,
   selectedLocation,
-  onLocationSelect,
-  interactive = true,
 }) {
   const validReports = reports.filter((item) => {
     const lat = pickLat(item);
@@ -143,8 +125,6 @@ export default function MapView({
 
         <Recenter center={center} />
 
-        {interactive && <ClickHandler onLocationSelect={onLocationSelect} />}
-
         {center &&
           Number.isFinite(Number(center.lat)) &&
           Number.isFinite(Number(center.lng)) && (
@@ -169,7 +149,7 @@ export default function MapView({
               icon={selectedIcon}
             >
               <Popup>
-                Selected location
+                Selected report location
                 <br />
                 {Number(selectedLocation.lat).toFixed(5)},{' '}
                 {Number(selectedLocation.lng).toFixed(5)}

@@ -6,6 +6,22 @@ import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import SafeStatusModulePage from './pages/SafeStatusModulePage.jsx';
 import WeatherAlertsPage from './pages/WeatherAlertsPage.jsx';
+import { Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import HomePage from "./pages/HomePage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
+import CreateTaskPage from "./pages/CreateTaskPage.jsx";
+import MyTasksPage from "./pages/MyTasksPage.jsx";
+import ResourcesPage from "./pages/ResourcesPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
+import CreateRequestPage from "./pages/CreateRequestPage.jsx";
+import RequestsPage from "./pages/RequestsPage.jsx";
+import MatchingPage from "./pages/MatchingPage.jsx";
+
 
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -13,13 +29,6 @@ const DashboardPage = () => (
     <p className="mt-4 text-gray-600">
       Welcome to your dashboard. Other modules and summaries can appear here.
     </p>
-  </div>
-);
-
-const ProfilePage = () => (
-  <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-    <p className="mt-4 text-gray-600">User profile and skill management coming soon.</p>
   </div>
 );
 
@@ -50,6 +59,51 @@ function App() {
           />
 
           <Route
+            path="/tasks/new"
+            element={
+              <ProtectedRoute>
+                <CreateTaskPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/tasks/mine"
+            element={
+              <ProtectedRoute>
+                <MyTasksPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/requests/new"
+            element={
+              <ProtectedRoute>
+                <CreateRequestPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/requests"
+            element={
+              <ProtectedRoute>
+                <RequestsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/matching"
+            element={
+              <ProtectedRoute>
+                <MatchingPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/safe-status"
             element={
               <ProtectedRoute>
@@ -63,6 +117,19 @@ function App() {
             element={
               <ProtectedRoute>
                 <WeatherAlertsPage />
+            path="/resources"
+            element={
+              <ProtectedRoute>
+                <ResourcesPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             }
           />
@@ -90,7 +157,8 @@ function App() {
       <footer className="bg-white border-t mt-auto">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <p className="text-center text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} HyperLocal Resilience Network. All rights reserved.
+            &copy; {new Date().getFullYear()} HyperLocal Resilience Network. All
+            rights reserved.
           </p>
         </div>
       </footer>

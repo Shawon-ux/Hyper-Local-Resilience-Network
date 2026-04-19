@@ -9,6 +9,8 @@ const rateLimit = require("express-rate-limit");
 const colors = require("colors");
 const cookieParser = require("cookie-parser");
 const { Server } = require("socket.io");
+const path = require("path");
+const fs = require("fs");
 
 dotenv.config();
 
@@ -19,9 +21,13 @@ const safeRoutes = require("./routes/safeRoutes");
 const resourceRoutes = require("./routes/resourceRoutes");
 const skillRoutes = require("./routes/skillRoutes");
 const microTaskRoutes = require("./routes/microTaskRoutes");
+const taskRoutes = require("./routes/taskRoutes");
 const matchingRoutes = require("./routes/matchingRoutes");
 const reputationRoutes = require("./routes/reputationRoutes");
 const alertRoutes = require("./routes/alertRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const criticalRequestRoutes = require("./routes/criticalRequestRoutes");
+
 
 const app = express();
 const server = http.createServer(app);
@@ -45,9 +51,9 @@ app.use(
     credentials: true,
   })
 );
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use("/api/notifications", notificationRoutes);
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(morgan("dev"));
 
@@ -58,6 +64,14 @@ const limiter = rateLimit({
 });
 
 app.use("/api", limiter);
+
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use("/uploads", express.static(uploadDir));
+
+// Routes
 
 app.get("/", (req, res) => {
   res.send("Hyper Local Resilience Network API is running");
@@ -88,6 +102,8 @@ app.use("/api/safe-status", safeRoutes);
 app.use("/api/resources", resourceRoutes);
 app.use("/api/skills", skillRoutes);
 app.use("/api/microtasks", microTaskRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/requests", criticalRequestRoutes);
 app.use("/api/matching", matchingRoutes);
 app.use("/api/reputation", reputationRoutes);
 app.use("/api/alerts", alertRoutes);
