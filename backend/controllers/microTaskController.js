@@ -1,9 +1,6 @@
 const MicroTask = require('../models/MicroTask');
 const { getSkillSuggestions, analyzeTaskDescription } = require('../utils/gemini');
 
-// @desc    Post a new micro-task (automatically gets skill suggestions)
-// @route   POST /api/microtasks
-// @access  Private
 exports.createMicroTask = async (req, res) => {
   try {
     const { title, description, location, urgency, skills, selectedSkills } = req.body;
@@ -41,9 +38,6 @@ exports.createMicroTask = async (req, res) => {
   }
 };
 
-// @desc    Analyze micro-task description and return suggested skills
-// @route   POST /api/tasks/analyze
-// @access  Public
 exports.analyzeTask = async (req, res) => {
   try {
     const { description } = req.body;
@@ -64,9 +58,7 @@ exports.analyzeTask = async (req, res) => {
   }
 };
 
-// @desc    Get all tasks posted by the logged-in user
-// @route   GET /api/microtasks/my-tasks
-// @access  Private
+
 exports.getMyTasks = async (req, res) => {
   try {
     const tasks = await MicroTask.find({ postedBy: req.user._id }).sort('-createdAt');
@@ -77,9 +69,7 @@ exports.getMyTasks = async (req, res) => {
   }
 };
 
-// @desc    Update a micro-task owned by the logged-in user
-// @route   PATCH /api/microtasks/:id
-// @access  Private
+
 exports.updateMicroTask = async (req, res) => {
   try {
     const { title, description, urgency } = req.body;
@@ -111,9 +101,7 @@ exports.updateMicroTask = async (req, res) => {
   }
 };
 
-// @desc    Delete a micro-task owned by the logged-in user
-// @route   DELETE /api/microtasks/:id
-// @access  Private
+
 exports.deleteMicroTask = async (req, res) => {
   try {
     const task = await MicroTask.findById(req.params.id);
