@@ -51,11 +51,10 @@ app.use(
     credentials: true,
   })
 );
-app.use("/api/notifications", notificationRoutes);
+app.use(morgan("dev"));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
-app.use(morgan("dev"));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -89,7 +88,7 @@ app.get("/api/db-status", (req, res) => {
     2: "connecting",
     3: "disconnecting",
   };
-
+  
   res.json({
     status: states[state] || "unknown",
     message: state === 1 ? "MongoDB is connected" : "MongoDB is not connected",
@@ -97,6 +96,7 @@ app.get("/api/db-status", (req, res) => {
 });
 
 // API routes
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/safe-status", safeRoutes);
 app.use("/api/resources", resourceRoutes);

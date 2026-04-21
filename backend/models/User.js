@@ -43,9 +43,14 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Please add an address'],
     },
     location: {
-      type: String,
-      required: [true, 'Please add a location'],
-      trim: true,
+      lat: {
+        type: Number,
+        required: [true, 'Please add latitude'],
+      },
+      lng: {
+        type: Number,
+        required: [true, 'Please add longitude'],
+      },
     },
     password: {
       type: String,
@@ -57,17 +62,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    skills: [
-      {
-        name: { type: String, required: true },
-        level: {
-          type: String,
-          enum: ['beginner', 'intermediate', 'expert'],
-          default: 'intermediate',
-        },
-        available: { type: Boolean, default: true },
-      },
-    ],
     skills: [skillSchema],
     reputationScore: { type: Number, default: 0 },
   },

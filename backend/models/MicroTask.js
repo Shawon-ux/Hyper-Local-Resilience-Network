@@ -7,6 +7,7 @@ const microTaskSchema = new mongoose.Schema(
     location: {
       lat: { type: Number, required: true },
       lng: { type: Number, required: true },
+      address: { type: String, default: "" }, // Human-readable address
     },
     urgency: {
       type: String,

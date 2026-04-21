@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
+import { MapPin } from "lucide-react";
 import useDebounce from "../hooks/useDebounce";
 import { useAuth } from "../context/AuthContext";
 import {
   analyzeTaskDescription,
   createMicroTask,
 } from "../services/taskService";
+import {
+  getAddressFromCoordinates,
+  getCurrentLocationWithAddress,
+} from "../services/geocodingService";
 import Toast from "./Toast";
 
 const urgencyOptions = ["Low", "Medium", "High", "Critical"];
@@ -14,9 +19,14 @@ const CreateTaskForm = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState("Medium");
-  const [location, setLocation] = useState("");
+  
+  // Location state: store both address (display) and coordinates (backend)
+  const [locationAddress, setLocationAddress] = useState("");
+  const [locationLat, setLocationLat] = useState(null);
+  const [locationLng, setLocationLng] = useState(null);
   const [locationSource, setLocationSource] = useState("profile");
   const [geoStatus, setGeoStatus] = useState("");
+  
   const [suggestedSkills, setSuggestedSkills] = useState([]);
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [customSkill, setCustomSkill] = useState("");
@@ -24,8 +34,24 @@ const CreateTaskForm = () => {
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [locatingGeo, setLocatingGeo] = useState(false);
 
   const [debouncedDescription] = useDebounce(description, 550);
+
+  // Initialize with user's profile location
+  useEffect(() => {
+    if (user?.location?.lat && user?.location?.lng) {
+      setLocationLat(user.location.lat);
+      setLocationLng(user.location.lng);
+      setLocationSource("profile");
+      // Fetch and set the address
+      getAddressFromCoordinates(user.location.lat, user.location.lng).then(
+        (data) => {
+          setLocationAddress(data.address);
+        }
+      );
+    }
+  }, [user?.location]);
 
   useEffect(() => {
     const analyze = async () => {
@@ -54,24 +80,46 @@ const CreateTaskForm = () => {
     analyze();
   }, [debouncedDescription]);
 
-  useEffect(() => {
-    if (user?.location) {
-      setLocation(user.location);
-      setLocationSource("profile");
-    }
-  }, [user?.location]);
-
   const handleUseProfileLocation = () => {
-    if (user?.location) {
-      setLocation(user.location);
+    if (user?.location?.lat && user?.location?.lng) {
+      setLocationLat(user.location.lat);
+      setLocationLng(user.location.lng);
       setLocationSource("profile");
       setError("");
+      setGeoStatus("Loading address...");
+      
+      getAddressFromCoordinates(user.location.lat, user.location.lng).then(
+        (data) => {
+          setLocationAddress(data.address);
+          setGeoStatus("");
+        }
+      ).catch((err) => {
+        setGeoStatus("Could not fetch address");
+      });
     } else {
       setError("Your profile location is not available.");
     }
   };
 
-
+  const handleUseCurrentLocation = async () => {
+    setLocatingGeo(true);
+    setGeoStatus("Getting your current location...");
+    setError("");
+    
+    try {
+      const locationData = await getCurrentLocationWithAddress();
+      setLocationLat(locationData.lat);
+      setLocationLng(locationData.lng);
+      setLocationAddress(locationData.address);
+      setLocationSource("current");
+      setGeoStatus("✓ Current location captured");
+    } catch (err) {
+      setError(err.message || "Unable to get your current location");
+      setGeoStatus("");
+    } finally {
+      setLocatingGeo(false);
+    }
+  };
 
   const toggleSkill = (skill) => {
     setSelectedSkills((prev) =>
@@ -108,12 +156,13 @@ const CreateTaskForm = () => {
     setError("");
     setFeedback("");
 
-    if (
-      !title.trim() ||
-      !description.trim() ||
-      !location.trim()
-    ) {
-      setError("Please enter title, description, and select a location.");
+    if (!title.trim() || !description.trim()) {
+      setError("Please enter title and description.");
+      return;
+    }
+
+    if (!locationLat || !locationLng) {
+      setError("Please select a location (profile or current).");
       return;
     }
 
@@ -124,7 +173,11 @@ const CreateTaskForm = () => {
         title,
         description,
         urgency,
-        location,
+        location: {
+          lat: locationLat,
+          lng: locationLng,
+          address: locationAddress,
+        },
         selectedSkills,
       });
 
@@ -132,12 +185,15 @@ const CreateTaskForm = () => {
       setTitle("");
       setDescription("");
       setUrgency("Medium");
-      setLocation("");
+      setLocationAddress("");
+      setLocationLat(null);
+      setLocationLng(null);
       setLocationSource("profile");
       setSelectedSkills([]);
       setCustomSkill("");
       setSuggestedSkills([]);
       setAnalysisIntent("");
+      setGeoStatus("");
     } catch (err) {
       setError(err?.response?.data?.message || "Unable to post task.");
     } finally {
@@ -184,6 +240,7 @@ const CreateTaskForm = () => {
           />
         </div>
 
+        {/* Location Section */}
         <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -191,17 +248,25 @@ const CreateTaskForm = () => {
                 Task location
               </p>
               <p className="mt-1 text-sm text-slate-500">
-                Choose your saved profile location or request your current
-                browser location.
+                Choose your saved profile location or get your current
+                browser location. Address will be displayed automatically.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={handleUseProfileLocation}
-                className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:border-blue-500 hover:text-blue-700"
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:border-blue-500 hover:text-blue-700 transition"
               >
                 Use profile location
+              </button>
+              <button
+                type="button"
+                onClick={handleUseCurrentLocation}
+                disabled={locatingGeo}
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:border-blue-500 hover:text-blue-700 transition disabled:opacity-50"
+              >
+                {locatingGeo ? "Getting location..." : "Use current location"}
               </button>
             </div>
           </div>
@@ -209,7 +274,7 @@ const CreateTaskForm = () => {
           <div className="mt-4 flex flex-col gap-2 rounded-2xl bg-white p-4 shadow-sm border border-slate-200">
             <div className="flex items-center justify-between gap-4">
               <span className="text-sm font-medium text-slate-700">
-                Selected coordinates
+                Selected location
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
                 {locationSource === "current"
@@ -218,12 +283,26 @@ const CreateTaskForm = () => {
               </span>
             </div>
             <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-800">
-              <span className="block text-xs text-slate-500">Location</span>
-              <span>
-                {location || "Not selected"}
-              </span>
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="block text-xs text-slate-500 mb-1">Address</span>
+                  <span className="block font-medium">
+                    {locationAddress || "Not selected"}
+                  </span>
+                  {locationLat && locationLng && (
+                    <span className="block text-xs text-slate-500 mt-1">
+                      Coordinates: {locationLat.toFixed(4)}, {locationLng.toFixed(4)}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            {geoStatus && <p className="text-sm text-slate-600">{geoStatus}</p>}
+            {geoStatus && (
+              <p className={`text-sm ${geoStatus.includes("✓") ? "text-emerald-600" : "text-blue-600"}`}>
+                {geoStatus}
+              </p>
+            )}
           </div>
         </div>
 
@@ -244,12 +323,6 @@ const CreateTaskForm = () => {
               ))}
             </select>
           </div>
-
-          {/* <div className="flex flex-col justify-end">
-            <p className="text-sm text-slate-500">
-              AI analysis updates automatically after you stop typing.
-            </p>
-          </div> */}
         </div>
 
         <div>
@@ -300,63 +373,63 @@ const CreateTaskForm = () => {
                 If the AI misses something, add it here.
               </span>
             </div>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedSkills.map((skill, index) => (
+                <span
+                  key={`${skill}-${index}`}
+                  className="rounded-full border border-blue-600 bg-blue-600 px-4 py-2 text-sm text-white flex items-center gap-2"
+                >
+                  {skill}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedSkills((prev) =>
+                        prev.filter((s, i) => i !== index)
+                      )
+                    }
+                    className="text-white hover:text-blue-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="mt-3 flex gap-2">
               <input
                 type="text"
                 value={customSkill}
                 onChange={(e) => setCustomSkill(e.target.value)}
                 onKeyDown={handleCustomSkillKeyDown}
-                placeholder="e.g. Electrical repair"
-                className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                placeholder="Type a skill and press Enter"
+                className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
               <button
                 type="button"
                 onClick={handleAddCustomSkill}
-                className="rounded-2xl border border-blue-600 bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:border-blue-500 hover:text-blue-700"
               >
-                Add tag
+                Add
               </button>
             </div>
           </div>
         </div>
 
-        {selectedSkills.length > 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-medium text-slate-700">
-              Selected skills
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {selectedSkills.map((skill) => (
-                <button
-                  key={skill}
-                  type="button"
-                  onClick={() => toggleSkill(skill)}
-                  className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-700"
-                >
-                  <span>{skill}</span>
-                  <span className="rounded-full bg-blue-200 px-2 py-0.5 text-xs text-blue-700">
-                    ×
-                  </span>
-                </button>
-              ))}
-            </div>
+        {error && (
+          <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">
+            {error}
           </div>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {feedback && <Toast message={feedback} type="success" />}
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-          >
-            {loading ? "Posting..." : "Post Micro-Task"}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={loading || locatingGeo}
+          className="w-full rounded-2xl border border-blue-600 bg-blue-600 px-6 py-3 text-center text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? "Posting..." : "Post Task"}
+        </button>
       </form>
-
-      <Toast message={feedback} />
     </div>
   );
 };

@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Menu, X, Home, User, LogOut, Shield, LayoutDashboard, Users, AlertTriangle } from 'lucide-react';
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useEffect} from "react";
 import api from "../services/api";
 import {
   Menu,
@@ -20,6 +17,7 @@ import {
   Plus,
   List,
   Bell,
+  AlertTriangle
 } from "lucide-react";
 
 const Navbar = () => {

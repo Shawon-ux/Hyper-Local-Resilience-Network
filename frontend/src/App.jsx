@@ -6,14 +6,6 @@ import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import SafeStatusModulePage from './pages/SafeStatusModulePage.jsx';
 import WeatherAlertsPage from './pages/WeatherAlertsPage.jsx';
-import { Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import ProtectedRoute from "./components/ProtectedRoute";
-import HomePage from "./pages/HomePage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import ProfilePage from "./pages/ProfilePage.jsx";
-import RegisterPage from "./pages/RegisterPage.jsx";
-import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
 import CreateTaskPage from "./pages/CreateTaskPage.jsx";
 import MyTasksPage from "./pages/MyTasksPage.jsx";
 import ResourcesPage from "./pages/ResourcesPage.jsx";
@@ -21,7 +13,7 @@ import NotificationsPage from "./pages/NotificationsPage.jsx";
 import CreateRequestPage from "./pages/CreateRequestPage.jsx";
 import RequestsPage from "./pages/RequestsPage.jsx";
 import MatchingPage from "./pages/MatchingPage.jsx";
-
+import ProfilePage from "./pages/ProfilePage.jsx";
 
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -117,6 +109,11 @@ function App() {
             element={
               <ProtectedRoute>
                 <WeatherAlertsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/resources"
             element={
               <ProtectedRoute>
