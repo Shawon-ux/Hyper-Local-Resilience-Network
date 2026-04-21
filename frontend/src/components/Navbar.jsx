@@ -20,7 +20,8 @@ import {
   Bell,
   AlertTriangle,
   ChevronDown,
-  CheckCircle
+  CheckCircle,
+  Trophy
 } from "lucide-react";
 
 let socket;
@@ -173,6 +174,15 @@ const Navbar = () => {
                       >
                         <User className="mr-2 h-4 w-4" />
                         Profile
+                      </Link>
+ 
+                      <Link
+                        to={`/reputation/${user._id}`}
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center px-4 py-2 text-sm hover:bg-gray-100 text-blue-600 font-medium"
+                      >
+                        <Trophy className="mr-2 h-4 w-4" />
+                        Reputation Profile
                       </Link>
 
                       <button
@@ -422,6 +432,13 @@ const Navbar = () => {
                   className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
                 >
                   Profile
+                </Link>
+                <Link
+                  to={`/reputation/${user._id}`}
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 text-blue-600 font-medium hover:bg-gray-100 rounded-md"
+                >
+                  Reputation Profile
                 </Link>
                 <Link
                   to="/notifications"

@@ -22,13 +22,40 @@ import {
 } from "../services/profileService";
 
 const CATEGORIES = [
-  "General",
+  'Medical',
+  'Mechanical',
+  'Delivery',
+  'Technical',
+  'Cleaning',
+  'Construction',
+  'Transportation',
+  'Food',
+  'Childcare',
+  'Pet Care',
+  'First Aid',
+  'Automotive',
+  'Energy',
+  'Communication',
+  'Logistics',
+  "Water Treatment",
+  "Firecraft",
+  "Shelter Building",
+  "Self Defense",
+  "Gardening",
+  "Sewing",
   "Plumbing",
-  "First Aid",
-  "Electrical",
-  "EV",
-  "Construction",
-  "Community Care",
+  "Carpentry",
+  "Hunting",
+  "Foraging",
+  "Weather Forecasting",
+  "Emergency Management",
+  "Crisis Negotiation",
+  "Mental Health",
+  "Rope Work",
+  "Radio Operation",
+  "Bartering",
+  "Financial Literacy",
+  "cooking"
 ];
 
 const LEVEL_OPTIONS = [
@@ -146,7 +173,7 @@ const ProfilePage = () => {
       const skillId = getSkillId(skill, index);
       return (
         (skill.name || "").trim().toLowerCase() ===
-          form.name.trim().toLowerCase() && skillId !== form._id
+        form.name.trim().toLowerCase() && skillId !== form._id
       );
     });
 
@@ -332,7 +359,7 @@ const ProfilePage = () => {
     if (!bulkSelectMode) {
       setBulkSelectMode(true);
     }
-    
+
     setSelectedIds((current) =>
       current.includes(skillId)
         ? current.filter((id) => id !== skillId)
@@ -344,7 +371,7 @@ const ProfilePage = () => {
     if (!bulkSelectMode) {
       setBulkSelectMode(true);
     }
-    
+
     if (selectedIds.length === filteredSkills.length) {
       setSelectedIds([]);
       return;
@@ -689,11 +716,10 @@ const ProfilePage = () => {
                       return (
                         <article
                           key={skillId}
-                          className={`group rounded-3xl border transition ${
-                            isSelected
+                          className={`group rounded-3xl border transition ${isSelected
                               ? "border-blue-400 bg-blue-50"
                               : "border-slate-200 bg-white hover:border-blue-200"
-                          } p-5 shadow-sm`}
+                            } p-5 shadow-sm`}
                         >
                           <div className="flex items-start gap-4">
                             {bulkSelectMode && (
@@ -743,8 +769,8 @@ const ProfilePage = () => {
                               <p className="mt-1 text-sm text-slate-900">
                                 {skill.lastVerified
                                   ? new Date(
-                                      skill.lastVerified,
-                                    ).toLocaleDateString()
+                                    skill.lastVerified,
+                                  ).toLocaleDateString()
                                   : "N/A"}
                               </p>
                             </div>

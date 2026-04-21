@@ -24,6 +24,41 @@ const AGENT_TAXONOMY = [
   'Energy',
   'Communication',
   'Logistics',
+  'Medical',
+  'Mechanical',
+  'Delivery',
+  'Technical',
+  'Cleaning',
+  'Construction',
+  'Transportation',
+  'Food',
+  'Childcare',
+  'Pet Care',
+  'First Aid',
+  'Automotive',
+  'Energy',
+  'Communication',
+  'Logistics',
+  "Water Treatment",
+  "Firecraft",
+  "Shelter Building",
+  "Self Defense",
+  "Gardening",
+  "Sewing",
+  "Plumbing",
+  "Carpentry",
+  "Hunting",
+  "Foraging",
+  "Weather Forecasting",
+  "Emergency Management",
+  "Crisis Negotiation",
+  "Mental Health",
+  "Rope Work",
+  "Radio Operation",
+  "Bartering",
+  "Financial Literacy",
+  "cooking",
+  "Fire Fighting"
 ];
 
 const parseAnalysisResponse = (output) => {
@@ -60,7 +95,7 @@ const analyzeTaskDescription = async (taskDescription) => {
         {
           role: 'system',
           content:
-            'You are an extraction assistant for a hyperlocal resilience network. Your only output must be valid JSON matching the schema: {"intent": string, "skills": string[]}. Do not output markdown, explanations, or additional fields.\n\nTaxonomy: Medical, Mechanical, Delivery, Technical, Cleaning, Construction, Transportation, Food, Childcare, Pet Care, First Aid, Automotive, Energy, Communication, Logistics.\n\nIf more than one relevant skill applies, include all that match. If none match, return an empty skills array. Example output: {"intent": "jump start car", "skills": ["Mechanical", "Automotive"]}.'
+            'You are an extraction assistant for a hyperlocal resilience network. Your only output must be valid JSON matching the schema: {"intent": string, "skills": string[]}. Do not output markdown, explanations, or additional fields.\n\nTaxonomy: Medical, Cooking, Mechanical, Delivery, Technical, Cleaning, Construction, Transportation, Food, Childcare, Pet Care, First Aid, Automotive, Energy, Communication,Navigation, Sanitation, Water Treatment, Firecraft, Shelter Building, Self Defense, Gardening, Sewing, Plumbing, Carpentry, Hunting, Foraging, Weather Forecasting, Emergency Management, Crisis Negotiation, Mental Health, Rope Work, Radio Operation, Bartering, Financial Literacy, Electrical, Masonry, Welding, Fishing, Food Preservation, Hygiene, Time Management, Decision Making, Problem Solving, Evacuation, Rescue, Triage, CPR, Fire Fighting, Knot Tying, Land Navigation..\n\nIf more than one relevant skill applies, include all that match. If none match, return an empty skills array. Example output: {"intent": "jump start car", "skills": ["Mechanical", "Automotive"]}.'
         },
         {
           role: 'user',

@@ -29,6 +29,7 @@ const microTaskSchema = new mongoose.Schema(
     postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     helper: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // who accepted
     completedAt: Date,
+    vouched: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

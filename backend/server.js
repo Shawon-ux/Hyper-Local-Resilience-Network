@@ -58,7 +58,7 @@ app.use(cookieParser());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 1000,
   message: "Too many requests from this IP, please try again later.",
 });
 
@@ -88,7 +88,7 @@ app.get("/api/db-status", (req, res) => {
     2: "connecting",
     3: "disconnecting",
   };
-  
+
   res.json({
     status: states[state] || "unknown",
     message: state === 1 ? "MongoDB is connected" : "MongoDB is not connected",

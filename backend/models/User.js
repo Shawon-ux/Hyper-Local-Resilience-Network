@@ -63,7 +63,30 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
     skills: [skillSchema],
-    reputationScore: { type: Number, default: 0 },
+    reputationScore: { type: Number, default: 0, index: true },
+    reputation: {
+      totalVouches: { type: Number, default: 0 },
+      skillEndorsements: {
+        type: Map,
+        of: {
+          count: { type: Number, default: 0 },
+          averageRating: { type: Number, default: 0 },
+          lastUpdated: { type: Date, default: Date.now },
+        },
+        default: new Map(),
+      },
+      averageRating: { type: Number, default: 0 },
+      isVerified: { type: Boolean, default: false },
+      verificationDate: Date,
+      transactionHistory: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'ReputationTransaction',
+        },
+      ],
+      lastVouchDate: Date,
+      trustScore: { type: Number, default: 0 },
+    },
     availabilityStatus: { type: Boolean, default: true },
   },
   { timestamps: true }

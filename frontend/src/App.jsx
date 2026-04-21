@@ -1,11 +1,12 @@
-import { Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import ProtectedRoute from './components/ProtectedRoute';
-import HomePage from './pages/HomePage.jsx';
-import LoginPage from './pages/LoginPage.jsx';
-import RegisterPage from './pages/RegisterPage.jsx';
-import SafeStatusModulePage from './pages/SafeStatusModulePage.jsx';
-import WeatherAlertsPage from './pages/WeatherAlertsPage.jsx';
+import { Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import NotificationListener from "./components/NotificationListener";
+import ProtectedRoute from "./components/ProtectedRoute";
+import HomePage from "./pages/HomePage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
+import WeatherAlertsPage from "./pages/WeatherAlertsPage.jsx";
 import CreateTaskPage from "./pages/CreateTaskPage.jsx";
 import MyTasksPage from "./pages/MyTasksPage.jsx";
 import AvailableTasksPage from "./pages/AvailableTasksPage.jsx";
@@ -16,6 +17,7 @@ import CreateRequestPage from "./pages/CreateRequestPage.jsx";
 import RequestsPage from "./pages/RequestsPage.jsx";
 import MatchingPage from "./pages/MatchingPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
+import ReputationProfilePage from "./pages/ReputationProfilePage.jsx";
 
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -37,6 +39,7 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
+      <NotificationListener />
       <main className="flex-grow">
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -156,6 +159,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/reputation/:userId"
+            element={
+              <ProtectedRoute>
+                <ReputationProfilePage />
               </ProtectedRoute>
             }
           />

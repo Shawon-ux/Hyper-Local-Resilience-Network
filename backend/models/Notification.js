@@ -20,6 +20,9 @@ const notificationSchema = new mongoose.Schema(
         "PROXIMITY_MATCH_FOUND_FOR_REQUESTER",
         "PROXIMITY_MATCH_FOUND_FOR_OWNER",
         "TASK_ACCEPTED",
+        "VOUCH_PROMPT",
+        "REPUTATION_EARNED",
+        "REPUTATION_LOST",
       ],
       required: true,
     },
@@ -68,6 +71,12 @@ const notificationSchema = new mongoose.Schema(
         ref: "MicroTask",
         default: null,
       },
+      helperId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      skillsUsed: [String],
     },
   },
   { timestamps: true }

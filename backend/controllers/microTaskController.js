@@ -205,7 +205,7 @@ exports.getAvailableTasks = async (req, res) => {
 // @access  Private
 exports.completeTask = async (req, res) => {
   try {
-    const task = await MicroTask.findById(req.params.id);
+    const task = await MicroTask.findById(req.params.id).populate('helper', 'name');
     
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
@@ -220,7 +220,36 @@ exports.completeTask = async (req, res) => {
     }
 
     task.status = 'completed';
+    task.completedAt = new Date();
     await task.save();
+
+    // Create vouch prompt notification
+    const Notification = require('../models/Notification');
+    const vouchNotification = await Notification.create({
+      user: task.postedBy._id,
+      type: 'VOUCH_PROMPT',
+      title: 'Rate & Verify',
+      message: `Please rate and verify ${task.helper?.name}'s work on: ${task.title}`,
+      meta: {
+        taskId: task._id,
+        helperId: task.helper._id,
+        skillsUsed: task.selectedSkills,
+      }
+    });
+
+    // Emit Socket.io event for real-time vouch prompt
+    const io = req.app.get('io');
+    if (io) {
+      io.to(task.postedBy._id.toString()).emit('vouch_prompt', {
+        notification: vouchNotification,
+        task: {
+          id: task._id,
+          title: task.title,
+          helper: task.helper,
+          selectedSkills: task.selectedSkills,
+        }
+      });
+    }
 
     res.json(task);
   } catch (error) {
