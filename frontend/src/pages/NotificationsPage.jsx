@@ -46,6 +46,7 @@ export default function NotificationsPage() {
       await api.patch(`/notifications/${id}/read`);
       showToast('Notification marked read.');
       await fetchNotifications();
+      window.dispatchEvent(new Event('notificationsRead'));
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to update notification.');
     }

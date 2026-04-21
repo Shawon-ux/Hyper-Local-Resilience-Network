@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useEffect} from "react";
+import { useEffect } from "react";
 import api from "../services/api";
+import { io } from "socket.io-client";
 import {
   Menu,
   X,
@@ -17,8 +18,12 @@ import {
   Plus,
   List,
   Bell,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  CheckCircle
 } from "lucide-react";
+
+let socket;
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -28,6 +33,8 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [taskMenuOpen, setTaskMenuOpen] = useState(false);
+  const [safetyMenuOpen, setSafetyMenuOpen] = useState(false);
+  const [resourceMenuOpen, setResourceMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const handleLogout = async () => {
@@ -49,36 +56,62 @@ const Navbar = () => {
   useEffect(() => {
     if (user) {
       fetchUnreadNotifications();
+      
+      socket = io("http://localhost:5000");
+      socket.emit("register", user._id);
+      
+      socket.on("notification", (notification) => {
+        setUnreadCount((prev) => prev + 1);
+        window.dispatchEvent(new Event('taskUpdated'));
+      });
+
+      const handleNotificationRead = () => {
+        fetchUnreadNotifications();
+      };
+      window.addEventListener("notificationsRead", handleNotificationRead);
+
+      return () => {
+        socket.disconnect();
+        window.removeEventListener("notificationsRead", handleNotificationRead);
+      };
     } else {
       setUnreadCount(0);
     }
   }, [user]);
 
-  const navLinks = [
-    { name: 'Home', path: '/', icon: Home },
+  const mainLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Community', path: '/community', icon: Users },
+  ];
+
+  const safetyLinks = [
     { name: 'Safe Status', path: '/safe-status', icon: Shield },
-    { name: 'Alerts', path: '/weather-alerts', icon: AlertTriangle },
-    { name: "Home", path: "/", icon: Home },
-    { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+    { name: 'Weather Alerts', path: '/weather-alerts', icon: AlertTriangle },
+  ];
+
+  const resourceLinks = [
     { name: "Help Center", path: "/requests", icon: List },
     { name: "Matching", path: "/matching", icon: Map },
-    { name: "Profile", path: "/profile", icon: User },
-    { name: "Resources", path: "/resources", icon: Box },
-    { name: "Community", path: "/community", icon: Users },
-    { name: "Safe Status", path: "/safe-status", icon: Shield },
+    { name: "Resource Board", path: "/resources", icon: Box },
   ];
 
   const taskLinks = [
+    { name: "Available Tasks", path: "/tasks/available", icon: Users },
     { name: "Post Task", path: "/tasks/new", icon: Plus },
     { name: "My Tasks", path: "/tasks/mine", icon: List },
+    { name: "Completed Tasks", path: "/tasks/completed", icon: CheckCircle },
   ];
 
   const isActive = (path) => location.pathname === path;
 
   const userName = user?.name || "User";
   const userInitial = userName.charAt(0).toUpperCase();
+
+  const closeAllMenus = () => {
+    setTaskMenuOpen(false);
+    setSafetyMenuOpen(false);
+    setResourceMenuOpen(false);
+  };
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
@@ -115,7 +148,10 @@ const Navbar = () => {
               {user ? (
                 <div className="relative ml-3">
                   <button
-                    onClick={() => setShowDropdown(!showDropdown)}
+                    onClick={() => {
+                      closeAllMenus();
+                      setShowDropdown(!showDropdown);
+                    }}
                     className="flex rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
@@ -171,7 +207,7 @@ const Navbar = () => {
           <div className="hidden md:flex md:flex-wrap md:items-center md:justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               {user &&
-                navLinks.map((link) => (
+                mainLinks.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
@@ -183,57 +219,124 @@ const Navbar = () => {
                   >
                     <link.icon className="h-4 w-4" />
                     {link.name}
-                    {link.path === '/notifications' && unreadCount > 0 && (
-                      <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 px-2 text-xs font-semibold text-white">
-                        {unreadCount}
-                      </span>
-                    )}
                   </Link>
                 ))}
             </div>
 
             {user && (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setTaskMenuOpen((prev) => !prev)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2 ${
-                    taskMenuOpen
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  <Plus className="h-4 w-4" />
-                  Tasks
-                </button>
+              <div className="flex items-center gap-2">
+                {/* Safety Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setSafetyMenuOpen(!safetyMenuOpen);
+                      setResourceMenuOpen(false);
+                      setTaskMenuOpen(false);
+                      setShowDropdown(false);
+                    }}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2 ${
+                      safetyMenuOpen ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Safety
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
 
-                {taskMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-3xl border border-slate-200 bg-white shadow-lg ring-1 ring-black/5">
-                    {taskLinks.map((link) => (
-                      <Link
-                        key={link.path}
-                        to={link.path}
-                        onClick={() => setTaskMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50"
-                      >
-                        <link.icon className="h-4 w-4" />
-                        {link.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+                  {safetyMenuOpen && (
+                    <div className="absolute left-0 mt-2 w-48 rounded-3xl border border-slate-200 bg-white shadow-lg ring-1 ring-black/5 z-50">
+                      {safetyLinks.map((link) => (
+                        <Link
+                          key={link.path}
+                          to={link.path}
+                          onClick={() => setSafetyMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50"
+                        >
+                          <link.icon className="h-4 w-4" />
+                          {link.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Resources Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setResourceMenuOpen(!resourceMenuOpen);
+                      setSafetyMenuOpen(false);
+                      setTaskMenuOpen(false);
+                      setShowDropdown(false);
+                    }}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2 ${
+                      resourceMenuOpen ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Box className="h-4 w-4" />
+                    Resources
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+
+                  {resourceMenuOpen && (
+                    <div className="absolute left-0 mt-2 w-48 rounded-3xl border border-slate-200 bg-white shadow-lg ring-1 ring-black/5 z-50">
+                      {resourceLinks.map((link) => (
+                        <Link
+                          key={link.path}
+                          to={link.path}
+                          onClick={() => setResourceMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50"
+                        >
+                          <link.icon className="h-4 w-4" />
+                          {link.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Tasks Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setTaskMenuOpen(!taskMenuOpen);
+                      setSafetyMenuOpen(false);
+                      setResourceMenuOpen(false);
+                      setShowDropdown(false);
+                    }}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2 ${
+                      taskMenuOpen ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Tasks
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+
+                  {taskMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 rounded-3xl border border-slate-200 bg-white shadow-lg ring-1 ring-black/5 z-50">
+                      {taskLinks.map((link) => (
+                        <Link
+                          key={link.path}
+                          to={link.path}
+                          onClick={() => setTaskMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50"
+                        >
+                          <link.icon className="h-4 w-4" />
+                          {link.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
         </div>
       {/* Mobile button */}
-      <div className="flex md:hidden items-center">
+      <div className="flex md:hidden items-center absolute right-4 top-4">
         <button onClick={() => setIsOpen(!isOpen)}>
-          {isOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
+          {isOpen ? <X className="h-6 w-6 text-slate-600" /> : <Menu className="h-6 w-6 text-slate-600" />}
         </button>
       </div>
     </div>
@@ -242,7 +345,7 @@ const Navbar = () => {
         <div className="md:hidden border-t">
           <div className="px-2 pt-2 pb-3 space-y-1">
             {user &&
-              navLinks.map((link) => (
+              mainLinks.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
@@ -260,31 +363,77 @@ const Navbar = () => {
               ))}
 
             {user && (
-              <div className="border-t border-slate-200 pt-3">
-                <p className="px-3 pb-2 text-xs uppercase tracking-wide text-slate-500">
-                  Tasks
-                </p>
-                {taskLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    onClick={() => setIsOpen(false)}
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
-                  >
-                    {link.name}
-                  </Link>
-                ))}
-              </div>
+              <>
+                <div className="border-t border-slate-200 pt-3">
+                  <p className="px-3 pb-2 text-xs uppercase tracking-wide text-slate-500">
+                    Safety & Alerts
+                  </p>
+                  {safetyLinks.map((link) => (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      onClick={() => setIsOpen(false)}
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                    >
+                      {link.name}
+                    </Link>
+                  ))}
+                </div>
+
+                <div className="border-t border-slate-200 pt-3">
+                  <p className="px-3 pb-2 text-xs uppercase tracking-wide text-slate-500">
+                    Resources
+                  </p>
+                  {resourceLinks.map((link) => (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      onClick={() => setIsOpen(false)}
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                    >
+                      {link.name}
+                    </Link>
+                  ))}
+                </div>
+
+                <div className="border-t border-slate-200 pt-3">
+                  <p className="px-3 pb-2 text-xs uppercase tracking-wide text-slate-500">
+                    Tasks
+                  </p>
+                  {taskLinks.map((link) => (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      onClick={() => setIsOpen(false)}
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                    >
+                      {link.name}
+                    </Link>
+                  ))}
+                </div>
+              </>
             )}
 
             {user ? (
-              <>
+              <div className="border-t border-slate-200 pt-3">
                 <Link
                   to="/profile"
                   onClick={() => setIsOpen(false)}
                   className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
                 >
                   Profile
+                </Link>
+                <Link
+                  to="/notifications"
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md flex items-center justify-between"
+                >
+                  Notifications
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
 
                 <button
@@ -296,7 +445,7 @@ const Navbar = () => {
                 >
                   Logout
                 </button>
-              </>
+              </div>
             ) : (
               <>
                 <Link

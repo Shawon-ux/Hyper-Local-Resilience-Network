@@ -19,6 +19,7 @@ const notificationSchema = new mongoose.Schema(
         "REQUEST_REJECTED_FOR_REQUESTER",
         "PROXIMITY_MATCH_FOUND_FOR_REQUESTER",
         "PROXIMITY_MATCH_FOUND_FOR_OWNER",
+        "TASK_ACCEPTED",
       ],
       required: true,
     },
@@ -60,6 +61,11 @@ const notificationSchema = new mongoose.Schema(
       requesterId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        default: null,
+      },
+      taskId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "MicroTask",
         default: null,
       },
     },

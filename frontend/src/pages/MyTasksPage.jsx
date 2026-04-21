@@ -3,9 +3,11 @@ import {
   fetchMyTasks,
   updateMyTask,
   deleteMyTask,
+  completeTask,
 } from "../services/taskService";
 import { MapPin, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import SuggestedHelpers from "../components/SuggestedHelpers";
 
 const MyTasksPage = () => {
   const [tasks, setTasks] = useState([]);
@@ -20,19 +22,22 @@ const MyTasksPage = () => {
   const [taskStatus, setTaskStatus] = useState("");
   const [savingTaskId, setSavingTaskId] = useState("");
 
-  useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        const data = await fetchMyTasks();
-        setTasks(Array.isArray(data) ? data : []);
-      } catch (err) {
-        setError(err?.response?.data?.message || "Unable to load your tasks.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadTasks = async () => {
+    try {
+      const data = await fetchMyTasks();
+      setTasks(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to load your tasks.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadTasks();
+    
+    window.addEventListener('taskUpdated', loadTasks);
+    return () => window.removeEventListener('taskUpdated', loadTasks);
   }, []);
 
   const startEditing = (task) => {
@@ -94,6 +99,15 @@ const MyTasksPage = () => {
     }
   };
 
+  const handleComplete = async (taskId) => {
+    try {
+      await completeTask(taskId);
+      loadTasks(); // refresh to show updated status
+    } catch (err) {
+      alert("Failed to complete task: " + (err.response?.data?.message || err.message));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -146,7 +160,7 @@ const MyTasksPage = () => {
           </div>
         ) : (
           <div className="grid gap-6">
-            {tasks.map((task) => {
+            {tasks.filter(t => t.status !== 'completed').map((task) => {
               const isEditing = editingTaskId === task._id;
 
               return (
@@ -163,9 +177,27 @@ const MyTasksPage = () => {
                         {task.description}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700">
-                      {task.status?.charAt(0).toUpperCase() +
-                        task.status?.slice(1)}
+                  </div>
+                  
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 mb-2 font-semibold">Real-time Status</p>
+                    <div className="flex items-center justify-between text-xs sm:text-sm font-medium mb-2">
+                      <span className={task.status === 'open' ? 'text-blue-600' : 'text-slate-500'}>
+                        Searching
+                      </span>
+                      <span className={task.status === 'in-progress' ? 'text-amber-600' : 'text-slate-500'}>
+                        Assigned {task.helper?.name ? `(${task.helper.name})` : ''}
+                      </span>
+                      <span className={task.status === 'completed' ? 'text-green-600' : 'text-slate-500'}>
+                        Completed
+                      </span>
+                    </div>
+                    <div className="h-2 flex rounded-full bg-slate-100 overflow-hidden">
+                      <div className={`h-full transition-all duration-500 ${
+                        task.status === 'open' ? 'w-1/3 bg-blue-500' : 
+                        task.status === 'in-progress' ? 'w-2/3 bg-amber-500' : 
+                        task.status === 'completed' ? 'w-full bg-green-500' : 'w-0'
+                      }`}></div>
                     </div>
                   </div>
 
@@ -237,6 +269,15 @@ const MyTasksPage = () => {
                     )}
 
                   <div className="mt-5 flex flex-wrap gap-2">
+                    {task.status === "in-progress" && (
+                      <button
+                        type="button"
+                        onClick={() => handleComplete(task._id)}
+                        className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+                      >
+                        Mark Completed
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() =>
@@ -254,6 +295,8 @@ const MyTasksPage = () => {
                       Delete
                     </button>
                   </div>
+
+                  {!isEditing && <SuggestedHelpers taskId={task._id} />}
 
                   {isEditing && (
                     <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-5">

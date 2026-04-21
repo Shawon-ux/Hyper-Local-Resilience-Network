@@ -64,6 +64,7 @@ const userSchema = new mongoose.Schema(
     },
     skills: [skillSchema],
     reputationScore: { type: Number, default: 0 },
+    availabilityStatus: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

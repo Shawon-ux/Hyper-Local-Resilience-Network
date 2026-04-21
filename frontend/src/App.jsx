@@ -8,6 +8,8 @@ import SafeStatusModulePage from './pages/SafeStatusModulePage.jsx';
 import WeatherAlertsPage from './pages/WeatherAlertsPage.jsx';
 import CreateTaskPage from "./pages/CreateTaskPage.jsx";
 import MyTasksPage from "./pages/MyTasksPage.jsx";
+import AvailableTasksPage from "./pages/AvailableTasksPage.jsx";
+import CompletedTasksPage from "./pages/CompletedTasksPage.jsx";
 import ResourcesPage from "./pages/ResourcesPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import CreateRequestPage from "./pages/CreateRequestPage.jsx";
@@ -64,6 +66,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <MyTasksPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/tasks/available"
+            element={
+              <ProtectedRoute>
+                <AvailableTasksPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/tasks/completed"
+            element={
+              <ProtectedRoute>
+                <CompletedTasksPage />
               </ProtectedRoute>
             }
           />

@@ -1,4 +1,4 @@
-﻿const MicroTask = require('../models/MicroTask');
+const MicroTask = require('../models/MicroTask');
 const User = require('../models/User');
 const ResourceOffer = require('../models/ResourceOffer');
 const CriticalRequest = require('../models/CriticalRequest');
@@ -244,6 +244,20 @@ const notifyProximityMatchesForOffer = async (offer, io) => {
   return matches;
 };
 
+// Helper for OSRM distance calculation
+const getRealDistanceMeters = async (lat1, lng1, lat2, lng2) => {
+  try {
+    const response = await fetch(`http://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`);
+    const data = await response.json();
+    if (data.routes && data.routes.length > 0) {
+      return data.routes[0].distance; // Distance in meters
+    }
+  } catch (err) {
+    console.error('OSRM API error:', err.message);
+  }
+  return getDistanceMeters(lat1, lng1, lat2, lng2); // fallback
+};
+
 // @desc    Get top matching volunteers for a specific micro-task
 // @route   GET /api/matching/microtask/:taskId
 // @access  Private
@@ -254,19 +268,33 @@ exports.matchVolunteersForTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    const potentialHelpers = await User.find({ _id: { $ne: task.postedBy._id } });
+    const maxDistanceMeters = 500;
+    const earthRadius = 6371000; // in meters
+    const latDelta = (maxDistanceMeters / earthRadius) * (180 / Math.PI);
+    const lngDelta = (maxDistanceMeters / earthRadius) * (180 / Math.PI) / Math.cos(task.location.lat * Math.PI / 180);
 
-    const scored = potentialHelpers.map((helper) => {
-      const distance = getDistanceMeters(
+    // MongoDB Bounding Box Query for ~500m
+    const potentialHelpers = await User.find({
+      _id: { $ne: task.postedBy._id },
+      availabilityStatus: true,
+      "location.lat": { $gte: task.location.lat - latDelta, $lte: task.location.lat + latDelta },
+      "location.lng": { $gte: task.location.lng - lngDelta, $lte: task.location.lng + lngDelta },
+    });
+
+    const scoredPromises = potentialHelpers.map(async (helper) => {
+      const distance = await getRealDistanceMeters(
         task.location.lat,
         task.location.lng,
         helper.location.lat,
         helper.location.lng
       );
-      const distanceScore = Math.max(0, 1 - distance / 5000);
+      
+      if (distance > maxDistanceMeters) return null;
+
+      const distanceScore = Math.max(0, 1 - distance / maxDistanceMeters);
 
       let skillOverlap = 0;
-      if (task.suggestedSkills.length > 0) {
+      if (task.suggestedSkills && task.suggestedSkills.length > 0) {
         const helperSkills = helper.skills.map((s) => s.name.toLowerCase());
         const matched = task.suggestedSkills.filter((skill) =>
           helperSkills.includes(skill.toLowerCase())
@@ -275,7 +303,7 @@ exports.matchVolunteersForTask = async (req, res) => {
       }
 
       const reputationScore = Math.min(1, helper.reputationScore / 100);
-      const totalScore = distanceScore * 0.4 + skillOverlap * 0.4 + reputationScore * 0.2;
+      const totalScore = Math.round((distanceScore * 40) + (skillOverlap * 40) + (reputationScore * 20));
 
       return {
         userId: helper._id,
@@ -283,15 +311,30 @@ exports.matchVolunteersForTask = async (req, res) => {
         location: helper.location,
         skills: helper.skills,
         reputationScore: helper.reputationScore,
-        distance: Number(distance.toFixed(2)),
+        distance: Number(distance.toFixed(0)),
         score: totalScore,
       };
     });
 
+    let scored = (await Promise.all(scoredPromises)).filter(Boolean);
     scored.sort((a, b) => b.score - a.score);
-    const top5 = scored.slice(0, 5);
+    const top3 = scored.slice(0, 3);
 
-    res.json({ taskId: task._id, matches: top5 });
+    const io = req.app.get("io");
+    if (io && top3.length > 0) {
+      io.emit("newTaskNearby", {
+        task: {
+          _id: task._id,
+          title: task.title,
+          description: task.description,
+          location: task.location,
+          urgency: task.urgency
+        },
+        targetUserIds: top3.map(h => h.userId)
+      });
+    }
+
+    res.json({ taskId: task._id, matches: top3 });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
