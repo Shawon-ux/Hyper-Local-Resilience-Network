@@ -7,6 +7,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const getErrorMessage = (error, fallback) => {
+    return (
+      error.response?.data?.message ||
+      error.response?.data?.errors?.[0]?.msg ||
+      fallback
+    );
+  };
+
   const getCurrentUser = async () => {
     try {
       const { data } = await api.get('/auth/me');
