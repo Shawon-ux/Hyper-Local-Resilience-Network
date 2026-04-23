@@ -72,6 +72,7 @@ export default function NotificationsPage() {
       window.dispatchEvent(new Event("notifications:changed"));
       showToast("Notification marked read.");
       await fetchNotifications();
+      window.dispatchEvent(new Event('notificationsRead'));
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to update notification.");
     }

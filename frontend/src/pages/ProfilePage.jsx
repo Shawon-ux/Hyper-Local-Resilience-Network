@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
   ShieldCheck,
   Sparkles,
+  X,
 } from "lucide-react";
 import {
   fetchProfile,
@@ -21,13 +22,40 @@ import {
 } from "../services/profileService";
 
 const CATEGORIES = [
-  "General",
+  'Medical',
+  'Mechanical',
+  'Delivery',
+  'Technical',
+  'Cleaning',
+  'Construction',
+  'Transportation',
+  'Food',
+  'Childcare',
+  'Pet Care',
+  'First Aid',
+  'Automotive',
+  'Energy',
+  'Communication',
+  'Logistics',
+  "Water Treatment",
+  "Firecraft",
+  "Shelter Building",
+  "Self Defense",
+  "Gardening",
+  "Sewing",
   "Plumbing",
-  "First Aid",
-  "Electrical",
-  "EV",
-  "Construction",
-  "Community Care",
+  "Carpentry",
+  "Hunting",
+  "Foraging",
+  "Weather Forecasting",
+  "Emergency Management",
+  "Crisis Negotiation",
+  "Mental Health",
+  "Rope Work",
+  "Radio Operation",
+  "Bartering",
+  "Financial Literacy",
+  "cooking"
 ];
 
 const LEVEL_OPTIONS = [
@@ -99,6 +127,7 @@ const ProfilePage = () => {
     sortBy: "recent",
   });
   const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
   const [confirmState, setConfirmState] = useState({
     open: false,
     mode: "single",
@@ -144,7 +173,7 @@ const ProfilePage = () => {
       const skillId = getSkillId(skill, index);
       return (
         (skill.name || "").trim().toLowerCase() ===
-          form.name.trim().toLowerCase() && skillId !== form._id
+        form.name.trim().toLowerCase() && skillId !== form._id
       );
     });
 
@@ -282,11 +311,9 @@ const ProfilePage = () => {
 
     let nextSkills;
     if (editingId) {
-      // Find the skill to edit by matching the ID properly
       nextSkills = skills.map((skill, index) => {
         const skillId = getSkillId(skill, index);
         if (skillId === editingId) {
-          // Preserve the original _id if it exists
           return {
             ...skill,
             name: payload.name,
@@ -328,6 +355,11 @@ const ProfilePage = () => {
   };
 
   const handleSelection = (skillId) => {
+    // Enable bulk select mode when selecting
+    if (!bulkSelectMode) {
+      setBulkSelectMode(true);
+    }
+
     setSelectedIds((current) =>
       current.includes(skillId)
         ? current.filter((id) => id !== skillId)
@@ -336,6 +368,10 @@ const ProfilePage = () => {
   };
 
   const handleSelectAll = () => {
+    if (!bulkSelectMode) {
+      setBulkSelectMode(true);
+    }
+
     if (selectedIds.length === filteredSkills.length) {
       setSelectedIds([]);
       return;
@@ -344,6 +380,11 @@ const ProfilePage = () => {
     setSelectedIds(
       filteredSkills.map((skill, index) => getSkillId(skill, index)),
     );
+  };
+
+  const exitBulkMode = () => {
+    setBulkSelectMode(false);
+    setSelectedIds([]);
   };
 
   const getSkillById = (id) => {
@@ -369,9 +410,7 @@ const ProfilePage = () => {
   };
 
   const performBulkAction = async (action, ids) => {
-    // Filter out temporary/unsaved skill IDs (those without valid MongoDB ObjectIds)
     const validIds = ids.filter((id) => {
-      // Valid MongoDB ObjectId format: 24 character hex string
       return /^[a-f0-9]{24}$/i.test(id);
     });
 
@@ -655,7 +694,7 @@ const ProfilePage = () => {
                 ) : filteredSkills.length === 0 ? (
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-12 text-center">
                     <p className="text-lg font-semibold text-slate-900">
-                      No results found for “{searchTerm}”
+                      No results found for "{searchTerm}"
                     </p>
                     <p className="mt-3 text-sm text-slate-600">
                       Try a different term or clear the filters to see all
@@ -670,24 +709,30 @@ const ProfilePage = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-4">
                     {filteredSkills.map((skill, index) => {
                       const skillId = getSkillId(skill, index);
+                      const isSelected = selectedIds.includes(skillId);
                       return (
                         <article
                           key={skillId}
-                          className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200"
+                          className={`group rounded-3xl border transition ${isSelected
+                              ? "border-blue-400 bg-blue-50"
+                              : "border-slate-200 bg-white hover:border-blue-200"
+                            } p-5 shadow-sm`}
                         >
                           <div className="flex items-start gap-4">
-                            <label className="flex h-5 w-5 items-center justify-center rounded border border-slate-300 bg-white ring-blue-500 transition focus-within:ring-2">
-                              <input
-                                type="checkbox"
-                                checked={selectedIds.includes(skillId)}
-                                onChange={() => handleSelection(skillId)}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                              />
-                            </label>
-                            <div className="min-w-0">
+                            {bulkSelectMode && (
+                              <label className="flex h-5 w-5 items-center justify-center rounded border border-slate-300 bg-white ring-blue-500 transition focus-within:ring-2 flex-shrink-0">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleSelection(skillId)}
+                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                />
+                              </label>
+                            )}
+                            <div className="min-w-0 flex-1">
                               <h3 className="text-lg font-semibold text-slate-900 truncate">
                                 {skill.name || "Unnamed skill"}
                               </h3>
@@ -695,12 +740,12 @@ const ProfilePage = () => {
                                 {skill.category || "General"}
                               </p>
                             </div>
-                            <div className="ml-auto rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600">
+                            <div className="ml-auto rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600 flex-shrink-0">
                               {availabilityLabel(skill.available)}
                             </div>
                           </div>
 
-                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div className="mt-4 grid gap-3 sm:grid-cols-4">
                             <div>
                               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                                 Experience
@@ -717,18 +762,26 @@ const ProfilePage = () => {
                                 ${Number(skill.hourlyRate).toFixed(2)}
                               </p>
                             </div>
-                          </div>
-
-                          <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm text-slate-500">
-                            <p>
-                              Verified{" "}
-                              {skill.lastVerified
-                                ? new Date(
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                                Verified
+                              </p>
+                              <p className="mt-1 text-sm text-slate-900">
+                                {skill.lastVerified
+                                  ? new Date(
                                     skill.lastVerified,
                                   ).toLocaleDateString()
-                                : "N/A"}
-                            </p>
-                            <p>Updated {formatRelativeTime(skill.updatedAt)}</p>
+                                  : "N/A"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                                Updated
+                              </p>
+                              <p className="mt-1 text-sm text-slate-900">
+                                {formatRelativeTime(skill.updatedAt)}
+                              </p>
+                            </div>
                           </div>
 
                           <div className="mt-5 flex flex-wrap gap-2">
@@ -937,7 +990,7 @@ const ProfilePage = () => {
 
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-700">
+                <div className={`rounded-2xl p-3 ${bulkSelectMode ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
@@ -945,26 +998,46 @@ const ProfilePage = () => {
                     Bulk management
                   </p>
                   <h2 className="mt-2 text-lg font-semibold text-slate-900">
-                    Selected skills
+                    Select multiple skills
                   </h2>
                 </div>
               </div>
 
               <div className="mt-6 space-y-4 text-sm text-slate-600">
-                <p>Use the checkbox on each card to select multiple skills.</p>
-                <p className="text-slate-500">Selected: {selectedIds.length}</p>
+                {!bulkSelectMode ? (
+                  <>
+                    <p>Enable bulk select mode to manage multiple skills at once.</p>
+                    <button
+                      type="button"
+                      onClick={() => setBulkSelectMode(true)}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition"
+                    >
+                      <Plus className="h-4 w-4" /> Enable Bulk Select
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-slate-500">Selected: <span className="font-semibold text-slate-900">{selectedIds.length}</span></p>
+                    <button
+                      type="button"
+                      onClick={handleSelectAll}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-3xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition"
+                    >
+                      <Plus className="h-4 w-4" />{" "}
+                      {selectedIds.length === filteredSkills.length
+                        ? "Deselect all"
+                        : "Select all visible"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={exitBulkMode}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      <X className="h-4 w-4" /> Exit Bulk Mode
+                    </button>
+                  </>
+                )}
               </div>
-
-              <button
-                type="button"
-                onClick={handleSelectAll}
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition"
-              >
-                <Plus className="h-4 w-4" />{" "}
-                {selectedIds.length === filteredSkills.length
-                  ? "Deselect all"
-                  : "Select all visible"}
-              </button>
             </section>
           </aside>
         </div>
@@ -1002,50 +1075,33 @@ const ProfilePage = () => {
       )}
 
       {confirmState.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <h3 className="text-xl font-semibold text-slate-900">
-              Confirm Delete
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-3xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-900">
+              Confirm {confirmState.mode === "single" ? "delete" : "bulk delete"}
             </h3>
-            <p className="mt-4 text-sm text-slate-600">
-              Are you sure you want to delete{" "}
-              {confirmState.mode === "bulk"
-                ? confirmState.label
-                : `"${confirmState.label}"`}
-              ? This action uses soft delete and preserves the history.
+            <p className="mt-3 text-sm text-slate-600">
+              Are you sure you want to delete {confirmState.label}? This action cannot be undone.
             </p>
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={handleDeleteConfirmed}
-                className="flex-1 rounded-3xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700 transition"
-              >
-                Confirm Delete
-              </button>
+            <div className="mt-6 flex gap-3 justify-end">
               <button
                 type="button"
                 onClick={() =>
-                  setConfirmState({
-                    open: false,
-                    mode: "single",
-                    label: "",
-                    ids: [],
-                  })
+                  setConfirmState({ open: false, mode: "single", label: "", ids: [] })
                 }
-                className="flex-1 rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
               >
                 Cancel
               </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirmed}
+                className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 transition"
+              >
+                Delete
+              </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {(status || error) && (
-        <div
-          className={`fixed bottom-4 right-4 z-50 rounded-3xl border px-5 py-4 text-sm shadow-lg transition duration-200 ${status ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-rose-200 bg-rose-50 text-rose-900"}`}
-        >
-          {status || error}
         </div>
       )}
     </div>

@@ -68,6 +68,14 @@ const userSchema = new mongoose.Schema(
       required: [true, "Please add an address"],
     },
     location: {
+      lat: {
+        type: Number,
+        required: [true, 'Please add latitude'],
+      },
+      lng: {
+        type: Number,
+        required: [true, 'Please add longitude'],
+      },
       type: String,
       required: [true, "Please add a location"],
       trim: true,
@@ -82,6 +90,32 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    skills: [skillSchema],
+    reputationScore: { type: Number, default: 0, index: true },
+    reputation: {
+      totalVouches: { type: Number, default: 0 },
+      skillEndorsements: {
+        type: Map,
+        of: {
+          count: { type: Number, default: 0 },
+          averageRating: { type: Number, default: 0 },
+          lastUpdated: { type: Date, default: Date.now },
+        },
+        default: new Map(),
+      },
+      averageRating: { type: Number, default: 0 },
+      isVerified: { type: Boolean, default: false },
+      verificationDate: Date,
+      transactionHistory: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'ReputationTransaction',
+        },
+      ],
+      lastVouchDate: Date,
+      trustScore: { type: Number, default: 0 },
+    },
+    availabilityStatus: { type: Boolean, default: true },
     crisisAlertActive: {
       type: Boolean,
       default: true,

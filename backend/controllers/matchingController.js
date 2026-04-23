@@ -1,4 +1,4 @@
-﻿const MicroTask = require('../models/MicroTask');
+const MicroTask = require('../models/MicroTask');
 const User = require('../models/User');
 const ResourceOffer = require('../models/ResourceOffer');
 const CriticalRequest = require('../models/CriticalRequest');
@@ -244,6 +244,31 @@ const notifyProximityMatchesForOffer = async (offer, io) => {
   return matches;
 };
 
+// Helper for OSRM distance calculation
+const getRealDistanceMeters = async (lat1, lng1, lat2, lng2) => {
+  try {
+    const response = await fetch(`http://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`);
+    const data = await response.json();
+    if (data.routes && data.routes.length > 0) {
+      return data.routes[0].distance; // Distance in meters
+    }
+  } catch (err) {
+    console.error('OSRM API error:', err.message);
+  }
+  return getDistanceMeters(lat1, lng1, lat2, lng2); // fallback
+};
+
+// Helper to normalize skills for fuzzy matching (stemming)
+const normalizeSkill = (s) => {
+  if (!s) return "";
+  return s.toLowerCase()
+    .trim()
+    .replace(/ing$/, '')
+    .replace(/er$/, '')
+    .replace(/s$/, '')
+    .replace(/es$/, '');
+};
+
 // @desc    Get top matching volunteers for a specific micro-task
 // @route   GET /api/matching/microtask/:taskId
 // @access  Private
@@ -254,44 +279,143 @@ exports.matchVolunteersForTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    const potentialHelpers = await User.find({ _id: { $ne: task.postedBy._id } });
+    const maxDistanceMeters = 20000; // Increased to 20km to accommodate user test coordinates
+    const queryRadiusMeters = 25000; // 25km buffer for query
+    const earthRadius = 6371000; // in meters
+    const latDelta = (queryRadiusMeters / earthRadius) * (180 / Math.PI);
+    const lngDelta = (queryRadiusMeters / earthRadius) * (180 / Math.PI) / Math.cos(task.location.lat * Math.PI / 180);
+    
+    const potentialHelpers = await User.find({
+      _id: { $ne: task.postedBy._id },
+      "location.lat": { $gte: task.location.lat - latDelta, $lte: task.location.lat + latDelta },
+      "location.lng": { $gte: task.location.lng - lngDelta, $lte: task.location.lng + lngDelta },
+    });
 
-    const scored = potentialHelpers.map((helper) => {
-      const distance = getDistanceMeters(
+    // Combine AI suggested skills and user selected skills for matching
+    const taskSkills = Array.from(new Set([
+      ...(task.suggestedSkills || []),
+      ...(task.selectedSkills || [])
+    ]));
+
+    // Calculate skill density (how many people on the platform have each skill)
+    const skillDensity = {};
+    if (taskSkills.length > 0) {
+      await Promise.all(taskSkills.map(async (skill) => {
+        const normalizedTarget = normalizeSkill(skill);
+        const count = await User.countDocuments({ 
+          $or: [
+            { "skills.name": { $regex: new RegExp(`^${normalizedTarget}`, "i") } },
+            { "skills.category": { $regex: new RegExp(`^${normalizedTarget}`, "i") } }
+          ]
+        });
+        skillDensity[skill] = count;
+      }));
+    }
+
+    const scoredPromises = potentialHelpers.map(async (helper) => {
+      // Check if helper is available and has location
+      if (helper.availabilityStatus === false || !helper.location?.lat) return null;
+
+      const distance = await getRealDistanceMeters(
         task.location.lat,
         task.location.lng,
         helper.location.lat,
         helper.location.lng
       );
-      const distanceScore = Math.max(0, 1 - distance / 5000);
+      
+      if (distance > maxDistanceMeters) return null;
+
+      const distanceScore = Math.max(0, 1 - distance / maxDistanceMeters);
 
       let skillOverlap = 0;
-      if (task.suggestedSkills.length > 0) {
-        const helperSkills = helper.skills.map((s) => s.name.toLowerCase());
-        const matched = task.suggestedSkills.filter((skill) =>
-          helperSkills.includes(skill.toLowerCase())
-        ).length;
-        skillOverlap = matched / task.suggestedSkills.length;
+      let skillReputationBonus = 0;
+      
+      if (taskSkills.length > 0) {
+        // Only consider skills that are marked as 'available: true'
+        const helperNormalizedSkills = new Set();
+        helper.skills.forEach(s => {
+          if (s.available !== false) {
+            if (s.name) helperNormalizedSkills.add(normalizeSkill(s.name));
+            if (s.category) helperNormalizedSkills.add(normalizeSkill(s.category));
+          }
+        });
+          
+        const matchedSkills = taskSkills.filter((skill) =>
+          helperNormalizedSkills.has(normalizeSkill(skill))
+        );
+        
+        // Strict filtering: if it doesn't match the skill, don't show
+        if (matchedSkills.length === 0) return null;
+
+        skillOverlap = matchedSkills.length / taskSkills.length;
+        
+        // Add bonus for skill-specific endorsements
+        if (helper.reputation?.skillEndorsements) {
+          const skillBonuses = matchedSkills.map((skill) => {
+            const skillEndorsement = helper.reputation.skillEndorsements.get(skill);
+            if (skillEndorsement) {
+              // Average rating contributes to score (0-5 scale normalized to 0-1)
+              return (skillEndorsement.averageRating / 5) * 0.3; // 30% bonus max per skill
+            }
+            return 0;
+          });
+          skillReputationBonus = Math.min(0.3, skillBonuses.reduce((a, b) => a + b, 0) / matchedSkills.length);
+        }
       }
 
-      const reputationScore = Math.min(1, helper.reputationScore / 100);
-      const totalScore = distanceScore * 0.4 + skillOverlap * 0.4 + reputationScore * 0.2;
+      // Enhanced reputation scoring with new reputation object
+      let reputationScore = 0;
+      if (helper.reputation?.trustScore) {
+        reputationScore = Math.min(1, helper.reputation.trustScore / 100); // Trust score normalized
+      } else if (helper.reputationScore) {
+        reputationScore = Math.min(1, helper.reputationScore / 100); // Legacy support
+      }
+
+      // Final score: distance (30%) + skill overlap (50%) + reputation (20%)
+      // + skill-specific reputation bonus
+      const totalScore = Math.round(
+        (distanceScore * 0.30) * 100 + 
+        (skillOverlap * 0.50) * 100 + 
+        (reputationScore * 0.20) * 100 +
+        (skillReputationBonus * 100)
+      );
 
       return {
         userId: helper._id,
         name: helper.name,
         location: helper.location,
         skills: helper.skills,
-        reputationScore: helper.reputationScore,
-        distance: Number(distance.toFixed(2)),
-        score: totalScore,
+        reputation: {
+          reputationScore: helper.reputationScore,
+          trustScore: helper.reputation?.trustScore || 0,
+          totalVouches: helper.reputation?.totalVouches || 0,
+          averageRating: helper.reputation?.averageRating || 0,
+          skillEndorsements: helper.reputation?.skillEndorsements || new Map(),
+        },
+        distance: Number(distance.toFixed(0)),
+        score: Math.min(100, totalScore), // Cap at 100
       };
     });
 
+    let scored = (await Promise.all(scoredPromises)).filter(Boolean);
     scored.sort((a, b) => b.score - a.score);
     const top5 = scored.slice(0, 5);
 
-    res.json({ taskId: task._id, matches: top5 });
+    const io = req.app.get("io");
+    if (io && top5.length > 0) {
+      io.emit("newTaskNearby", {
+        task: {
+          _id: task._id,
+          title: task.title,
+          description: task.description,
+          location: task.location,
+          urgency: task.urgency
+        },
+        targetUserIds: top5.map(h => h.userId)
+      });
+    }
+
+    res.json({ taskId: task._id, matches: top5, skillDensity });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

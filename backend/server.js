@@ -34,33 +34,80 @@ const io = new Server(server, {
 app.set("io", io);
 global.__io = io;
 
-// Middleware
-app.use(helmet({ contentSecurityPolicy: false })); // Disable CSP for local dev/maps
-app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+app.use(helmet());
+
+app.use(
+  cors({
+    origin: FRONTEND_URL,
+    credentials: true,
+  })
+);
+app.use(morgan("dev"));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
-app.use(morgan("dev"));
 
 // Rate Limiter - Apply ONLY to API, but keep it high for dev
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 1000, 
-  message: "Too many requests."
+  max: 1000,
+  message: "Too many requests from this IP, please try again later.",
 });
 app.use("/api", limiter);
 
 // Routes
+
+app.get("/", (req, res) => {
+  res.send("Hyper Local Resilience Network API is running");
+});
+
+app.get("/api/test", (req, res) => {
+  res.json({ message: "Backend is running" });
+});
+
+app.get("/api/db-status", (req, res) => {
+  const state = mongoose.connection.readyState;
+  const states = {
+    0: "disconnected",
+    1: "connected",
+    2: "connecting",
+    3: "disconnecting",
+  };
+
+  res.json({
+    status: states[state] || "unknown",
+    message: state === 1 ? "MongoDB is connected" : "MongoDB is not connected",
+  });
+});
+
+// API routes
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/resources", resourceRoutes); 
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/readiness", readinessRoutes);
 
-// Static Files
-const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-app.use("/uploads", express.static(uploadDir));
+// Socket.io
+io.on("connection", (socket) => {
+  console.log(`A user connected: ${socket.id}`.green);
+
+  socket.on("register", (userId) => {
+    socket.join(userId);
+    console.log(`User ${userId} joined room`.blue);
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`A user disconnected: ${socket.id}`.red);
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    message: `Route not found: ${req.method} ${req.originalUrl}`,
+  });
+});
 
 // Socket Logic
 io.on("connection", (socket) => {

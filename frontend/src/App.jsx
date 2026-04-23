@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import NotificationListener from "./components/NotificationListener";
 import EmergencyBanner from "./components/EmergencyBanner";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -10,6 +11,10 @@ import ProfilePage from "./pages/ProfilePage.jsx";
 
 import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
 import WeatherAlertsPage from "./pages/WeatherAlertsPage.jsx";
+import CreateTaskPage from "./pages/CreateTaskPage.jsx";
+import MyTasksPage from "./pages/MyTasksPage.jsx";
+import AvailableTasksPage from "./pages/AvailableTasksPage.jsx";
+import CompletedTasksPage from "./pages/CompletedTasksPage.jsx";
 
 import CreateTaskPage from "./pages/CreateTaskPage.jsx";
 import MyTasksPage from "./pages/MyTasksPage.jsx";
@@ -20,6 +25,9 @@ import NotificationsPage from "./pages/NotificationsPage.jsx";
 import CreateRequestPage from "./pages/CreateRequestPage.jsx";
 import RequestsPage from "./pages/RequestsPage.jsx";
 import MatchingPage from "./pages/MatchingPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
+import ReputationProfilePage from "./pages/ReputationProfilePage.jsx";
+
 
 // Inline Pages
 const DashboardPage = () => (
@@ -44,6 +52,7 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
+      <NotificationListener />
       <EmergencyBanner />
 
       <main className="flex-grow">
@@ -77,6 +86,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <MyTasksPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/tasks/available"
+            element={
+              <ProtectedRoute>
+                <AvailableTasksPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/tasks/completed"
+            element={
+              <ProtectedRoute>
+                <CompletedTasksPage />
               </ProtectedRoute>
             }
           />
@@ -130,6 +157,7 @@ function App() {
             path="/weather-alerts"
             element={
               <ProtectedRoute>
+                <WeatherAlertsPage />
                 <WeatherAlertsPage mode="alerts" />
               </ProtectedRoute>
             }
@@ -158,6 +186,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/reputation/:userId"
+            element={
+              <ProtectedRoute>
+                <ReputationProfilePage />
               </ProtectedRoute>
             }
           />
