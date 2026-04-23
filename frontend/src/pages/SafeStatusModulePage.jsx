@@ -126,14 +126,10 @@ export default function SafeStatusModulePage() {
 
   const fetchEmergencyState = async () => {
     try {
-      const { data } = await api.get('/safe-status/meta');
-      if (typeof data?.emergencyActive === 'boolean') {
-        setEmergencyActive(data.emergencyActive);
-      } else {
-        setEmergencyActive(true);
-      }
+      const { data } = await api.get('/resources/emergency/status');
+      setEmergencyActive(Boolean(data?.isActive));
     } catch {
-      setEmergencyActive(true);
+      setEmergencyActive(false);
     }
   };
 
@@ -190,8 +186,7 @@ export default function SafeStatusModulePage() {
       'safeStatusUpdated',
       'safeStatusDeleted',
       'safeStatusValidated',
-      'emergencyDeclared',
-      'emergencyEnded',
+      'EMERGENCY_STATUS_CHANGE',
     ];
 
     events.forEach((event) => socket.on(event, refresh));

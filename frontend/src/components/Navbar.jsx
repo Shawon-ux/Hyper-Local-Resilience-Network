@@ -1,9 +1,6 @@
-import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Menu, X, Home, User, LogOut, Shield, LayoutDashboard, Users, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import {
@@ -20,7 +17,13 @@ import {
   Plus,
   List,
   Bell,
+  AlertTriangle,
+  Radio,
 } from "lucide-react";
+
+const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:9457", {
+  autoConnect: false,
+});
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -40,36 +43,51 @@ const Navbar = () => {
 
   const fetchUnreadNotifications = async () => {
     try {
-      const { data } = await api.get('/notifications/my');
+      const { data } = await api.get("/notifications/my");
       setUnreadCount(data.filter((item) => !item.isRead).length);
     } catch (err) {
-      console.error('Failed to load notification count:', err);
+      console.error("Notification error:", err);
       setUnreadCount(0);
     }
   };
 
   useEffect(() => {
-    if (user) {
-      fetchUnreadNotifications();
-    } else {
+    if (!user?._id) {
       setUnreadCount(0);
+      socket.disconnect();
+      return;
     }
-  }, [user]);
+
+    fetchUnreadNotifications();
+    socket.connect();
+    socket.emit("register:user", user._id);
+
+    const handleNotification = () => {
+      setUnreadCount((current) => current + 1);
+    };
+    const handleNotificationsChanged = () => {
+      fetchUnreadNotifications();
+    };
+
+    socket.on("notification:new", handleNotification);
+    window.addEventListener("notifications:changed", handleNotificationsChanged);
+
+    return () => {
+      socket.off("notification:new", handleNotification);
+      window.removeEventListener("notifications:changed", handleNotificationsChanged);
+    };
+  }, [user?._id]);
 
   const navLinks = [
-    { name: 'Home', path: '/', icon: Home },
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Community', path: '/community', icon: Users },
-    { name: 'Safe Status', path: '/safe-status', icon: Shield },
-    { name: 'Alerts', path: '/weather-alerts', icon: AlertTriangle },
     { name: "Home", path: "/", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+    { name: "Community", path: "/community", icon: Users },
     { name: "Help Center", path: "/requests", icon: List },
     { name: "Matching", path: "/matching", icon: Map },
-    { name: "Profile", path: "/profile", icon: User },
     { name: "Resources", path: "/resources", icon: Box },
-    { name: "Community", path: "/community", icon: Users },
     { name: "Safe Status", path: "/safe-status", icon: Shield },
+    { name: "Alerts", path: "/weather-alerts", icon: AlertTriangle },
+    { name: "Crisis Center", path: "/crisis-center", icon: Radio },
   ];
 
   const taskLinks = [
@@ -85,237 +103,168 @@ const Navbar = () => {
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-3 py-3">
-          <div className="flex items-center justify-between gap-4">
-            {/* Logo */}
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center">
-                <Shield className="h-8 w-8 text-blue-600" />
-                <span className="ml-2 text-xl font-bold text-gray-800">
-                  HyperLocal
-                </span>
-              </Link>
-            </div>
 
-            {/* User section */}
-            <div className="hidden md:flex md:items-center md:gap-3">
-              {user && (
-                <Link
-                  to="/notifications"
-                  className="relative inline-flex items-center rounded-full p-2 text-gray-600 hover:bg-gray-100"
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-semibold text-white">
-                      {unreadCount}
-                    </span>
-                  )}
-                </Link>
-              )}
+        {/* TOP BAR */}
+        <div className="flex items-center justify-between h-16">
 
-              {user ? (
-                <div className="relative ml-3">
-                  <button
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    className="flex rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-                      {userInitial}
-                    </div>
-                  </button>
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <Shield className="h-8 w-8 text-blue-600" />
+            <span className="ml-2 text-xl font-bold text-gray-800">
+              HyperLocal
+            </span>
+          </Link>
 
-                  {showDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                      <div className="px-4 py-2 text-sm border-b">
-                        <p className="font-medium">{userName}</p>
-                        <p className="text-xs text-gray-500">{user?.email}</p>
-                      </div>
+          {/* RIGHT SIDE */}
+          <div className="hidden md:flex items-center gap-3">
 
-                      <Link
-                        to="/profile"
-                        onClick={() => setShowDropdown(false)}
-                        className="flex items-center px-4 py-2 text-sm hover:bg-gray-100"
-                      >
-                        <User className="mr-2 h-4 w-4" />
-                        Profile
-                      </Link>
-
-                      <button
-                        onClick={handleLogout}
-                        className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Logout
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex space-x-2">
-                  <Link
-                    to="/login"
-                    className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    Sign Up
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="hidden md:flex md:flex-wrap md:items-center md:justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {user &&
-                navLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-2 ${
-                      isActive(link.path)
-                        ? "bg-blue-100 text-blue-700"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <link.icon className="h-4 w-4" />
-                    {link.name}
-                    {link.path === '/notifications' && unreadCount > 0 && (
-                      <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 px-2 text-xs font-semibold text-white">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </Link>
-                ))}
-            </div>
-
+            {/* Notifications */}
             {user && (
+              <Link
+                to="/notifications"
+                className="relative p-2 rounded-full hover:bg-gray-100"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs px-1.5 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
+            {/* User */}
+            {user ? (
               <div className="relative">
                 <button
-                  type="button"
-                  onClick={() => setTaskMenuOpen((prev) => !prev)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2 ${
-                    taskMenuOpen
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="h-8 w-8 rounded-full bg-blue-500 text-white"
                 >
-                  <Plus className="h-4 w-4" />
-                  Tasks
+                  {userInitial}
                 </button>
 
-                {taskMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-3xl border border-slate-200 bg-white shadow-lg ring-1 ring-black/5">
-                    {taskLinks.map((link) => (
-                      <Link
-                        key={link.path}
-                        to={link.path}
-                        onClick={() => setTaskMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50"
-                      >
-                        <link.icon className="h-4 w-4" />
-                        {link.name}
-                      </Link>
-                    ))}
+                {showDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded-md">
+                    <div className="px-4 py-2 border-b">
+                      <p className="font-medium">{userName}</p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
+                    </div>
+
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 hover:bg-gray-100"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      Profile
+                    </Link>
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                    >
+                      Logout
+                    </button>
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-      {/* Mobile button */}
-      <div className="flex md:hidden items-center">
-        <button onClick={() => setIsOpen(!isOpen)}>
-          {isOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
-        </button>
-      </div>
-    </div>
-      {/* Mobile menu */}
-      {isOpen && (
-        <div className="md:hidden border-t">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            {user &&
-              navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setIsOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-base font-medium
-                  ${
-                    isActive(link.path)
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }
-                `}
-                >
-                  {link.name}
-                </Link>
-              ))}
-
-            {user && (
-              <div className="border-t border-slate-200 pt-3">
-                <p className="px-3 pb-2 text-xs uppercase tracking-wide text-slate-500">
-                  Tasks
-                </p>
-                {taskLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    onClick={() => setIsOpen(false)}
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
-                  >
-                    {link.name}
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {user ? (
-              <>
-                <Link
-                  to="/profile"
-                  onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-                >
-                  Profile
-                </Link>
-
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setIsOpen(false);
-                  }}
-                  className="block w-full text-left px-3 py-2 text-red-600 hover:bg-gray-100 rounded-md"
-                >
-                  Logout
-                </button>
-              </>
             ) : (
               <>
-                <Link
-                  to="/login"
-                  className="block px-3 py-2 text-gray-700 hover:bg-gray-100"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="block px-3 py-2 bg-blue-600 text-white rounded-md"
-                >
+                <Link to="/login">Login</Link>
+                <Link to="/register" className="bg-blue-600 text-white px-3 py-1 rounded">
                   Sign Up
                 </Link>
               </>
             )}
           </div>
+
+          {/* MOBILE BUTTON */}
+          <div className="md:hidden">
+            <button onClick={() => setIsOpen(!isOpen)}>
+              {isOpen ? <X /> : <Menu />}
+            </button>
+          </div>
+        </div>
+
+        {/* NAV LINKS */}
+        {user && (
+          <div className="hidden md:flex justify-between py-2">
+
+            <div className="flex gap-2 flex-wrap">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`px-3 py-2 rounded-md flex items-center gap-2 ${
+                    isActive(link.path)
+                      ? "bg-blue-100 text-blue-700"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  <link.icon className="h-4 w-4" />
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+
+            {/* TASK MENU */}
+            <div className="relative">
+              <button
+                onClick={() => setTaskMenuOpen(!taskMenuOpen)}
+                className="px-3 py-2 flex items-center gap-2 hover:bg-gray-100 rounded-md"
+              >
+                <Plus className="h-4 w-4" />
+                Tasks
+              </button>
+
+              {taskMenuOpen && (
+                <div className="absolute right-0 mt-2 bg-white shadow-lg border rounded-md w-40">
+                  {taskLinks.map((link) => (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      className="block px-4 py-2 hover:bg-gray-100"
+                      onClick={() => setTaskMenuOpen(false)}
+                    >
+                      {link.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* MOBILE MENU */}
+      {isOpen && (
+        <div className="md:hidden border-t px-3 py-2">
+          {navLinks.map((link) => (
+            <Link
+              key={link.path}
+              to={link.path}
+              onClick={() => setIsOpen(false)}
+              className="block py-2"
+            >
+              {link.name}
+            </Link>
+          ))}
+
+          {user && (
+            <>
+              <div className="border-t mt-2 pt-2">
+                {taskLinks.map((link) => (
+                  <Link key={link.path} to={link.path} className="block py-2">
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+
+              <Link to="/profile" className="block py-2">Profile</Link>
+              <button onClick={handleLogout} className="block py-2 text-red-600">
+                Logout
+              </button>
+            </>
+          )}
         </div>
       )}
     </nav>

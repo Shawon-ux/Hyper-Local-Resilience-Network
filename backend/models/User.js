@@ -1,20 +1,44 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const skillSchema = new mongoose.Schema(
   {
-    name: { type: String, required: [true, 'Please add a skill name'], trim: true },
-    category: { type: String, trim: true, default: 'General' },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    category: {
+      type: String,
+      default: "General",
+      trim: true,
+    },
     level: {
       type: String,
-      enum: ['beginner', 'intermediate', 'expert'],
-      default: 'intermediate',
+      enum: ["beginner", "intermediate", "expert"],
+      default: "intermediate",
     },
-    available: { type: Boolean, default: true },
-    yearsOfExperience: { type: Number, default: 0, min: 0 },
-    hourlyRate: { type: mongoose.Schema.Types.Decimal128, default: 0.0 },
-    lastVerified: { type: Date, default: Date.now },
-    deleted: { type: Boolean, default: false },
+    available: {
+      type: Boolean,
+      default: true,
+    },
+    yearsOfExperience: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    hourlyRate: {
+      type: mongoose.Schema.Types.Decimal128,
+      default: 0,
+    },
+    lastVerified: {
+      type: Date,
+      default: Date.now,
+    },
+    deleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
@@ -23,33 +47,34 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Please add a name'],
+      required: [true, "Please add a name"],
       trim: true,
     },
     email: {
       type: String,
-      required: [true, 'Please add an email'],
+      required: [true, "Please add an email"],
       unique: true,
       lowercase: true,
       trim: true,
     },
     phone: {
       type: String,
-      required: [true, 'Please add a phone number'],
+      required: [true, "Please add a phone number"],
       unique: true,
+      trim: true,
     },
     address: {
       type: String,
-      required: [true, 'Please add an address'],
+      required: [true, "Please add an address"],
     },
     location: {
       type: String,
-      required: [true, 'Please add a location'],
+      required: [true, "Please add a location"],
       trim: true,
     },
     password: {
       type: String,
-      required: [true, 'Please add a password'],
+      required: [true, "Please add a password"],
       minlength: 6,
       select: false,
     },
@@ -57,31 +82,48 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    skills: [
-      {
-        name: { type: String, required: true },
-        level: {
-          type: String,
-          enum: ['beginner', 'intermediate', 'expert'],
-          default: 'intermediate',
-        },
-        available: { type: Boolean, default: true },
-      },
-    ],
+    crisisAlertActive: {
+      type: Boolean,
+      default: true,
+    },
     skills: [skillSchema],
-    reputationScore: { type: Number, default: 0 },
+    reputationScore: {
+      type: Number,
+      default: 0,
+    },
+    socketId: {
+      type: String,
+      default: null,
+    },
+    // --- EMERGENCY MODE ADDITIONS ---
+    safetyStatus: {
+      type: String,
+      enum: ["Safe", "In Danger", "Evacuated", "Unknown"],
+      default: "Unknown",
+    },
+    lastEmergencyCheckIn: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
-userSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
+/**
+ * FIXED PRE-SAVE MIDDLEWARE
+ */
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) {
+    return;
+  }
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
+/* Compare password */
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", userSchema);

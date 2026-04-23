@@ -1,45 +1,85 @@
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
+const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+const { validationResult } = require("express-validator");
 
+/* ---------------------------------------------------
+   GENERATE JWT TOKEN
+--------------------------------------------------- */
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign(
+    { id },
+    process.env.JWT_SECRET || "secret123",
+    { expiresIn: "30d" }
+  );
 };
 
+/* ---------------------------------------------------
+   REGISTER USER
+   POST /api/auth/register
+--------------------------------------------------- */
 exports.register = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { name, email, phone, address, location, password } = req.body;
-
   try {
-    const userExists = await User.findOne({ $or: [{ email }, { phone }] });
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists with this email or phone' });
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        message: "Validation failed",
+        errors: errors.array(),
+      });
     }
 
-    const user = await User.create({
+    const {
       name,
       email,
       phone,
       address,
       location,
       password,
-      isAdmin: false,
+    } = req.body;
+
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
+
+    const normalizedPhone = String(phone || "").trim();
+
+    /* CHECK EXISTING USER */
+    const userExists = await User.findOne({
+      $or: [
+        { email: normalizedEmail },
+        { phone: normalizedPhone },
+      ],
+    });
+
+    if (userExists) {
+      return res.status(400).json({
+        message: "User already exists",
+      });
+    }
+
+    /* CREATE USER */
+    const user = await User.create({
+      name,
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      address,
+      location,
+      password,
     });
 
     const token = generateToken(user._id);
 
-    res.cookie('token', token, {
+    /* COOKIE */
+    res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: false,
+      sameSite: "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
+      success: true,
+      message: "Registration successful",
       token,
       user: {
         _id: user._id,
@@ -49,41 +89,74 @@ exports.register = async (req, res) => {
         address: user.address,
         location: user.location,
         isAdmin: user.isAdmin,
-        skills: user.skills,
-        reputationScore: user.reputationScore,
+        crisisAlertActive: user.crisisAlertActive,
+        skills: user.skills || [],
+        reputationScore: user.reputationScore || 0,
       },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("REGISTER ERROR:", error);
+
+    return res.status(500).json({
+      message: "Server error during registration",
+    });
   }
 };
 
+/* ---------------------------------------------------
+   LOGIN USER
+   POST /api/auth/login
+--------------------------------------------------- */
 exports.login = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { email, password } = req.body;
-
   try {
-    const user = await User.findOne({ email }).select('+password');
+    const errors = validationResult(req);
 
-    if (!user || !(await user.matchPassword(password))) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        message: "Validation failed",
+        errors: errors.array(),
+      });
+    }
+
+    const { email, password } = req.body;
+
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
+
+    /* FIND USER */
+    const user = await User.findOne({
+      email: normalizedEmail,
+    }).select("+password");
+
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    /* CHECK PASSWORD */
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
     }
 
     const token = generateToken(user._id);
 
-    res.cookie('token', token, {
+    /* COOKIE */
+    res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: false,
+      sameSite: "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
       token,
       user: {
         _id: user._id,
@@ -93,24 +166,45 @@ exports.login = async (req, res) => {
         address: user.address,
         location: user.location,
         isAdmin: user.isAdmin,
-        skills: user.skills,
-        reputationScore: user.reputationScore,
+        crisisAlertActive: user.crisisAlertActive,
+        skills: user.skills || [],
+        reputationScore: user.reputationScore || 0,
       },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("LOGIN ERROR:", error);
+
+    return res.status(500).json({
+      message: "Server error during login",
+    });
   }
 };
 
+/* ---------------------------------------------------
+   LOGOUT
+--------------------------------------------------- */
 exports.logout = (req, res) => {
-  res.clearCookie('token');
-  res.json({ message: 'Logged out successfully' });
+  res.clearCookie("token");
+
+  return res.json({
+    success: true,
+    message: "Logged out successfully",
+  });
 };
 
+/* ---------------------------------------------------
+   GET CURRENT USER
+--------------------------------------------------- */
 exports.getMe = async (req, res) => {
   try {
-    res.json({
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+
+    return res.json({
+      success: true,
       user: {
         _id: req.user._id,
         name: req.user.name,
@@ -119,12 +213,16 @@ exports.getMe = async (req, res) => {
         address: req.user.address,
         location: req.user.location,
         isAdmin: req.user.isAdmin,
-        skills: req.user.skills,
-        reputationScore: req.user.reputationScore,
+        crisisAlertActive: req.user.crisisAlertActive,
+        skills: req.user.skills || [],
+        reputationScore: req.user.reputationScore || 0,
       },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("GETME ERROR:", error);
+
+    return res.status(500).json({
+      message: "Server error",
+    });
   }
 };
