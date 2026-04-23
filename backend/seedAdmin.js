@@ -5,10 +5,16 @@ const User = require('./models/User');
 async function seedAdmin() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
+    console.log('MongoDB Connected');
 
-    const existing = await User.findOne({ email: 'admin@hyperlocal.com' });
+    const existing = await User.findOne({
+      email: 'admin@hyperlocal.com',
+    });
+
     if (existing) {
       console.log('Dummy admin already exists');
+      console.log('Email: admin@hyperlocal.com');
+      console.log('Password: admin123');
       process.exit(0);
     }
 
@@ -17,10 +23,7 @@ async function seedAdmin() {
       email: 'admin@hyperlocal.com',
       phone: '01700000000',
       address: 'Dhaka Admin Hub',
-      location: {
-        lat: 23.8103,
-        lng: 90.4125,
-      },
+      location: 'Dhaka, Bangladesh',
       password: 'admin123',
       isAdmin: true,
       skills: [],
@@ -28,6 +31,7 @@ async function seedAdmin() {
     });
 
     await admin.save();
+
     console.log('Dummy admin created successfully');
     console.log('Email: admin@hyperlocal.com');
     console.log('Password: admin123');

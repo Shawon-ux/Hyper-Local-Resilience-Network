@@ -1,24 +1,35 @@
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import NotificationListener from "./components/NotificationListener";
+import EmergencyBanner from "./components/EmergencyBanner";
 import ProtectedRoute from "./components/ProtectedRoute";
+
 import HomePage from "./pages/HomePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
+
 import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
 import WeatherAlertsPage from "./pages/WeatherAlertsPage.jsx";
 import CreateTaskPage from "./pages/CreateTaskPage.jsx";
 import MyTasksPage from "./pages/MyTasksPage.jsx";
 import AvailableTasksPage from "./pages/AvailableTasksPage.jsx";
 import CompletedTasksPage from "./pages/CompletedTasksPage.jsx";
+
+import CreateTaskPage from "./pages/CreateTaskPage.jsx";
+import MyTasksPage from "./pages/MyTasksPage.jsx";
+
 import ResourcesPage from "./pages/ResourcesPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
+
 import CreateRequestPage from "./pages/CreateRequestPage.jsx";
 import RequestsPage from "./pages/RequestsPage.jsx";
 import MatchingPage from "./pages/MatchingPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import ReputationProfilePage from "./pages/ReputationProfilePage.jsx";
 
+
+// Inline Pages
 const DashboardPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
     <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -31,7 +42,9 @@ const DashboardPage = () => (
 const CommunityPage = () => (
   <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
     <h1 className="text-3xl font-bold text-gray-900">Community</h1>
-    <p className="mt-4 text-gray-600">Find neighbors and resources near you.</p>
+    <p className="mt-4 text-gray-600">
+      Find neighbors and resources near you.
+    </p>
   </div>
 );
 
@@ -40,12 +53,16 @@ function App() {
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <NotificationListener />
+      <EmergencyBanner />
+
       <main className="flex-grow">
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
+          {/* Protected Routes */}
           <Route
             path="/dashboard"
             element={
@@ -128,10 +145,20 @@ function App() {
           />
 
           <Route
+            path="/crisis-center"
+            element={
+              <ProtectedRoute>
+                <WeatherAlertsPage mode="crisis-center" />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/weather-alerts"
             element={
               <ProtectedRoute>
                 <WeatherAlertsPage />
+                <WeatherAlertsPage mode="alerts" />
               </ProtectedRoute>
             }
           />

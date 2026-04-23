@@ -23,6 +23,8 @@ const notificationSchema = new mongoose.Schema(
         "VOUCH_PROMPT",
         "REPUTATION_EARNED",
         "REPUTATION_LOST",
+        "PROACTIVE_RESOURCE_READINESS",
+        "READINESS_GAP_ALERT",
       ],
       required: true,
     },
@@ -59,6 +61,30 @@ const notificationSchema = new mongoose.Schema(
       requestId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "CriticalRequest",
+        default: null,
+      },
+      alertId: {
+        type: String,
+        default: null,
+      },
+      alertTitle: {
+        type: String,
+        default: null,
+      },
+      resourceName: {
+        type: String,
+        default: null,
+      },
+      resourceCategory: {
+        type: String,
+        default: null,
+      },
+      urgency: {
+        type: String,
+        default: null,
+      },
+      outreachStatus: {
+        type: String,
         default: null,
       },
       requesterId: {
