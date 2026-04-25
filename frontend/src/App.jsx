@@ -1,137 +1,189 @@
-import { Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import ProtectedRoute from "./components/ProtectedRoute";
-import HomePage from "./pages/HomePage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import ProfilePage from "./pages/ProfilePage.jsx";
-import RegisterPage from "./pages/RegisterPage.jsx";
-import SafeStatusModulePage from "./pages/SafeStatusModulePage.jsx";
-import CreateTaskPage from "./pages/CreateTaskPage.jsx";
-import MyTasksPage from "./pages/MyTasksPage.jsx";
-import ResourcesPage from "./pages/ResourcesPage.jsx";
-import CreateRequestPage from "./pages/CreateRequestPage.jsx";
-import RequestsPage from "./pages/RequestsPage.jsx";
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
+import Navbar from './components/Navbar';
+import { useAuth } from './context/AuthContext';
 
-const DashboardPage = () => (
-  <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-    <p className="mt-4 text-gray-600">
-      Welcome to your dashboard. Other modules and summaries can appear here.
-    </p>
-  </div>
-);
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ResourcesPage from './pages/ResourcesPage';
+import RequestsPage from './pages/RequestsPage';
+import CreateRequestPage from './pages/CreateRequestPage';
+import MatchingPage from './pages/MatchingPage';
+import SafeStatusModulePage from './pages/SafeStatusModulePage';
 
-const CommunityPage = () => (
-  <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <h1 className="text-3xl font-bold text-gray-900">Community</h1>
-    <p className="mt-4 text-gray-600">Find neighbors and resources near you.</p>
-  </div>
-);
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
 
-function App() {
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/tasks/new"
-            element={
-              <ProtectedRoute>
-                <CreateTaskPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/tasks/mine"
-            element={
-              <ProtectedRoute>
-                <MyTasksPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/requests/new"
-            element={
-              <ProtectedRoute>
-                <CreateRequestPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/requests"
-            element={
-              <ProtectedRoute>
-                <RequestsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/safe-status"
-            element={
-              <ProtectedRoute>
-                <SafeStatusModulePage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/resources"
-            element={
-              <ProtectedRoute>
-                <ResourcesPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/community"
-            element={
-              <ProtectedRoute>
-                <CommunityPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </main>
-
-      <footer className="bg-white border-t mt-auto">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} HyperLocal Resilience Network. All
-            rights reserved.
-          </p>
+  if (loading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-slate-50">
+        <div className="rounded-3xl border border-slate-200 bg-white px-6 py-5 text-center shadow-sm">
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+          <p className="text-sm font-semibold text-slate-700">Loading...</p>
         </div>
-      </footer>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function PublicRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-slate-50">
+        <div className="rounded-3xl border border-slate-200 bg-white px-6 py-5 text-center shadow-sm">
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+          <p className="text-sm font-semibold text-slate-700">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/safe-status" replace />;
+  }
+
+  return children;
+}
+
+function AppLayout({ children }) {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Navbar />
+      <div className="pt-0">{children}</div>
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public routes */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
+
+        {/* Default route */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Navigate to="/safe-status" replace />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Main protected feature routes */}
+        <Route
+          path="/safe-status"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <SafeStatusModulePage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/resources"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ResourcesPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/matching"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <MatchingPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/requests"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <RequestsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/requests/new"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <CreateRequestPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Old/alternate route redirects */}
+        <Route path="/help-center" element={<Navigate to="/requests" replace />} />
+        <Route path="/safe" element={<Navigate to="/safe-status" replace />} />
+        <Route path="/resource" element={<Navigate to="/resources" replace />} />
+        <Route path="/match" element={<Navigate to="/matching" replace />} />
+
+        {/* 404 fallback */}
+        <Route
+          path="*"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 lg:px-8">
+                  <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+                    <h1 className="text-3xl font-bold text-slate-900">
+                      Page not found
+                    </h1>
+                    <p className="mt-3 text-sm text-slate-500">
+                      The page you are looking for does not exist.
+                    </p>
+                    <a
+                      href="/safe-status"
+                      className="mt-6 inline-flex rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                    >
+                      Go to Safe Status
+                    </a>
+                  </div>
+                </div>
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+  );
+}

@@ -16,32 +16,34 @@ dotenv.config();
 
 const connectDB = require("./config/db");
 
+// Route Imports
 const authRoutes = require("./routes/authRoutes");
-const safeRoutes = require("./routes/safeRoutes");
 const resourceRoutes = require("./routes/resourceRoutes");
-const skillRoutes = require("./routes/skillRoutes");
-const microTaskRoutes = require("./routes/microTaskRoutes");
-const taskRoutes = require("./routes/taskRoutes");
-const matchingRoutes = require("./routes/matchingRoutes");
-const reputationRoutes = require("./routes/reputationRoutes");
-const notificationRoutes = require("./routes/notificationRoutes");
 const criticalRequestRoutes = require("./routes/criticalRequestRoutes");
-
+const notificationRoutes = require("./routes/notificationRoutes");
+const alertRoutes = require("./routes/alertRoutes");
+const readinessRoutes = require("./routes/readinessRoutes");
+const safeRoutes = require("./routes/safeRoutes");
+const matchingRoutes = require("./routes/matchingRoutes");
 
 const app = express();
 const server = http.createServer(app);
 
-const FRONTEND_URL = "http://localhost:5173";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
+// Socket.io Setup
 const io = new Server(server, {
   cors: {
     origin: FRONTEND_URL,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   },
 });
 
 app.set("io", io);
+global.__io = io;
 
+// Middleware
 app.use(helmet());
 
 app.use(
@@ -50,28 +52,31 @@ app.use(
     credentials: true,
   })
 );
-app.use("/api/notifications", notificationRoutes);
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(cookieParser());
-app.use(morgan("dev"));
 
+app.use(morgan("dev"));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(cookieParser());
+
+// Static Uploads
+const uploadsDir = path.join(__dirname, "uploads");
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+app.use("/uploads", express.static(uploadsDir));
+
+// Rate Limiter
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 1000,
   message: "Too many requests from this IP, please try again later.",
 });
 
 app.use("/api", limiter);
 
-const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-app.use("/uploads", express.static(uploadDir));
-
-// Routes
-
+// Base Routes
 app.get("/", (req, res) => {
   res.send("Hyper Local Resilience Network API is running");
 });
@@ -82,6 +87,7 @@ app.get("/api/test", (req, res) => {
 
 app.get("/api/db-status", (req, res) => {
   const state = mongoose.connection.readyState;
+
   const states = {
     0: "disconnected",
     1: "connected",
@@ -95,51 +101,63 @@ app.get("/api/db-status", (req, res) => {
   });
 });
 
-// API routes
+// API Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/safe-status", safeRoutes);
 app.use("/api/resources", resourceRoutes);
-app.use("/api/skills", skillRoutes);
-app.use("/api/microtasks", microTaskRoutes);
-app.use("/api/tasks", taskRoutes);
 app.use("/api/requests", criticalRequestRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/alerts", alertRoutes);
+app.use("/api/readiness", readinessRoutes);
+app.use("/api/safe-status", safeRoutes);
 app.use("/api/matching", matchingRoutes);
-app.use("/api/reputation", reputationRoutes);
 
-// Socket.io
+// Socket.io Logic
 io.on("connection", (socket) => {
-  console.log(`A user connected: ${socket.id}`.green);
+  console.log(`User connected: ${socket.id}`.cyan);
+
+  socket.on("register", (userId) => {
+    if (!userId) return;
+
+    socket.join(String(userId));
+    socket.join(`user:${String(userId)}`);
+
+    console.log(`User ${userId} joined socket rooms`.blue);
+  });
+
+  socket.on("register:user", (userId) => {
+    if (!userId) return;
+
+    socket.join(String(userId));
+    socket.join(`user:${String(userId)}`);
+
+    console.log(`User ${userId} joined user room`.blue);
+  });
 
   socket.on("disconnect", () => {
-    console.log(`A user disconnected: ${socket.id}`.red);
+    console.log(`User disconnected: ${socket.id}`.red);
   });
 });
 
-// 404 handler
+// 404 Handler - must stay after all routes/static middleware
 app.use((req, res) => {
   res.status(404).json({
     message: `Route not found: ${req.method} ${req.originalUrl}`,
   });
 });
 
-// Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack?.red || err);
+// Start Server
+const PORT = process.env.PORT || 9457;
 
-  res.status(err.status || 500).json({
-    message: err.message || "Server error",
-  });
-});
+const startServer = async () => {
+  try {
+    await connectDB();
 
-const PORT = process.env.PORT || 5000;
-
-connectDB()
-  .then(() => {
     server.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`.yellow.bold);
     });
-  })
-  .catch((error) => {
-    console.error("Database connection failed:".red, error.message);
-    process.exit(1);
-  });
+  } catch (error) {
+    console.log("Failed to start server: ".red, error);
+  }
+};
+
+startServer();

@@ -6,6 +6,7 @@ import {
   TileLayer,
   CircleMarker,
   useMap,
+  useMapEvents,
 } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -44,17 +45,17 @@ const unsafeIcon = new L.DivIcon({
 const selectedIcon = new L.DivIcon({
   html: `
     <div style="
-      width:20px;
-      height:20px;
+      width:24px;
+      height:24px;
       border-radius:9999px;
       background:#2563eb;
-      border:3px solid #dbeafe;
-      box-shadow:0 0 0 4px rgba(37,99,235,.18);
+      border:4px solid #dbeafe;
+      box-shadow:0 0 0 8px rgba(37,99,235,.20);
     "></div>
   `,
   className: '',
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
 });
 
 const fallbackCenter = [23.8103, 90.4125];
@@ -67,10 +68,19 @@ function pickLng(item) {
   return Number(item?.longitude ?? item?.location?.lng ?? item?.location?.longitude);
 }
 
-function Recenter({ center }) {
+function Recenter({ center, selectedLocation }) {
   const map = useMap();
 
   useEffect(() => {
+    if (
+      selectedLocation &&
+      Number.isFinite(Number(selectedLocation.lat)) &&
+      Number.isFinite(Number(selectedLocation.lng))
+    ) {
+      map.setView([Number(selectedLocation.lat), Number(selectedLocation.lng)], 15);
+      return;
+    }
+
     if (
       center &&
       Number.isFinite(Number(center.lat)) &&
@@ -78,7 +88,22 @@ function Recenter({ center }) {
     ) {
       map.setView([Number(center.lat), Number(center.lng)], 13);
     }
-  }, [center, map]);
+  }, [center, selectedLocation, map]);
+
+  return null;
+}
+
+function MapClickHandler({ interactive, onLocationSelect }) {
+  useMapEvents({
+    click(event) {
+      if (!interactive || typeof onLocationSelect !== 'function') return;
+
+      const lat = event.latlng.lat;
+      const lng = event.latlng.lng;
+
+      onLocationSelect({ lat, lng });
+    },
+  });
 
   return null;
 }
@@ -87,6 +112,9 @@ export default function MapView({
   reports = [],
   center,
   selectedLocation,
+  onLocationSelect,
+  interactive = false,
+  height = '500px',
 }) {
   const validReports = reports.filter((item) => {
     const lat = pickLat(item);
@@ -95,7 +123,9 @@ export default function MapView({
   });
 
   const mapCenter =
-    center && Number.isFinite(Number(center.lat)) && Number.isFinite(Number(center.lng))
+    center &&
+    Number.isFinite(Number(center.lat)) &&
+    Number.isFinite(Number(center.lng))
       ? [Number(center.lat), Number(center.lng)]
       : validReports.length > 0
       ? [pickLat(validReports[0]), pickLng(validReports[0])]
@@ -105,39 +135,71 @@ export default function MapView({
     <div
       style={{
         width: '100%',
-        height: '500px',
+        height,
         border: '1px solid #e2e8f0',
         borderRadius: '24px',
         overflow: 'hidden',
         background: '#f8fafc',
+        position: 'relative',
       }}
     >
+      {interactive && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '14px',
+            left: '14px',
+            zIndex: 500,
+            borderRadius: '9999px',
+            background: 'rgba(255,255,255,0.96)',
+            padding: '9px 14px',
+            fontSize: '12px',
+            fontWeight: 700,
+            color: '#2563eb',
+            boxShadow: '0 8px 20px rgba(15,23,42,0.12)',
+            border: '1px solid #dbeafe',
+          }}
+        >
+          Click map to select report location
+        </div>
+      )}
+
       <MapContainer
         center={mapCenter}
         zoom={13}
         scrollWheelZoom={true}
-        style={{ width: '100%', height: '100%' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          cursor: interactive ? 'crosshair' : 'grab',
+        }}
       >
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <Recenter center={center} />
+        <MapClickHandler
+          interactive={interactive}
+          onLocationSelect={onLocationSelect}
+        />
+
+        <Recenter center={center} selectedLocation={selectedLocation} />
 
         {center &&
           Number.isFinite(Number(center.lat)) &&
           Number.isFinite(Number(center.lng)) && (
             <CircleMarker
               center={[Number(center.lat), Number(center.lng)]}
-              radius={12}
+              radius={13}
               pathOptions={{
                 color: '#2563eb',
                 fillColor: '#3b82f6',
-                fillOpacity: 0.3,
+                fillOpacity: 0.25,
+                weight: 2,
               }}
             >
-              <Popup>Your current/saved location</Popup>
+              <Popup>Your login/current location</Popup>
             </CircleMarker>
           )}
 
@@ -145,14 +207,20 @@ export default function MapView({
           Number.isFinite(Number(selectedLocation.lat)) &&
           Number.isFinite(Number(selectedLocation.lng)) && (
             <Marker
-              position={[Number(selectedLocation.lat), Number(selectedLocation.lng)]}
+              position={[
+                Number(selectedLocation.lat),
+                Number(selectedLocation.lng),
+              ]}
               icon={selectedIcon}
             >
               <Popup>
-                Selected report location
-                <br />
-                {Number(selectedLocation.lat).toFixed(5)},{' '}
-                {Number(selectedLocation.lng).toFixed(5)}
+                <div style={{ fontSize: '14px' }}>
+                  <strong>Selected report location</strong>
+                  <br />
+                  Latitude: {Number(selectedLocation.lat).toFixed(5)}
+                  <br />
+                  Longitude: {Number(selectedLocation.lng).toFixed(5)}
+                </div>
               </Popup>
             </Marker>
           )}
@@ -180,6 +248,12 @@ export default function MapView({
                     <>
                       <br />
                       Note: {item.note}
+                    </>
+                  ) : null}
+                  {item.createdAt ? (
+                    <>
+                      <br />
+                      Submitted: {new Date(item.createdAt).toLocaleString()}
                     </>
                   ) : null}
                 </div>

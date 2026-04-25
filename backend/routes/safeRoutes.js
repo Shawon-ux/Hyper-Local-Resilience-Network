@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const SafeReport = require("../models/SafeReport");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -37,7 +38,9 @@ router.post("/", protect, async (req, res) => {
     const savedReport = await report.save();
 
     const io = req.app.get("io");
-    io.emit("safeStatusCreated", savedReport);
+    if (io) {
+      io.emit("safeStatusCreated", savedReport);
+    }
 
     res.status(201).json(savedReport);
   } catch (error) {
@@ -73,11 +76,15 @@ router.patch("/:id/validate", protect, async (req, res) => {
     );
 
     if (!updatedReport) {
-      return res.status(404).json({ message: "Safe report not found" });
+      return res.status(404).json({
+        message: "Safe report not found",
+      });
     }
 
     const io = req.app.get("io");
-    io.emit("safeStatusUpdated", updatedReport);
+    if (io) {
+      io.emit("safeStatusUpdated", updatedReport);
+    }
 
     res.status(200).json(updatedReport);
   } catch (error) {
@@ -94,13 +101,21 @@ router.delete("/:id", protect, async (req, res) => {
     const deletedReport = await SafeReport.findByIdAndDelete(req.params.id);
 
     if (!deletedReport) {
-      return res.status(404).json({ message: "Safe report not found" });
+      return res.status(404).json({
+        message: "Safe report not found",
+      });
     }
 
     const io = req.app.get("io");
-    io.emit("safeStatusDeleted", { id: req.params.id });
+    if (io) {
+      io.emit("safeStatusDeleted", {
+        id: req.params.id,
+      });
+    }
 
-    res.status(200).json({ message: "Safe report deleted successfully" });
+    res.status(200).json({
+      message: "Safe report deleted successfully",
+    });
   } catch (error) {
     res.status(500).json({
       message: "Failed to delete safe report",

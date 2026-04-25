@@ -1,275 +1,259 @@
-import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+﻿import { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Menu,
-  X,
-  Home,
-  User,
+  Bell,
+  Boxes,
+  HandHeart,
+  HeartPulse,
+  LayoutGrid,
   LogOut,
-  Shield,
-  Map,
-  Users,
-  Box,
-  LayoutDashboard,
-  Plus,
-  List,
-} from "lucide-react";
+  MapPin,
+  Menu,
+  ShieldCheck,
+  UserRound,
+  X,
+} from 'lucide-react';
 
-const Navbar = () => {
+import { useAuth } from '../context/AuthContext';
+
+const mainNavItems = [
+  {
+    name: 'Safe Status',
+    path: '/safe-status',
+    icon: ShieldCheck,
+    description: 'Report safety',
+  },
+  {
+    name: 'Resources',
+    path: '/resources',
+    icon: Boxes,
+    description: 'Share supplies',
+  },
+  {
+    name: 'Matching',
+    path: '/matching',
+    icon: MapPin,
+    description: 'Find nearby help',
+  },
+  {
+    name: 'Help Center',
+    path: '/requests',
+    icon: HandHeart,
+    description: 'Community requests',
+  },
+];
+
+function getInitials(name = '') {
+  const parts = name.trim().split(' ').filter(Boolean);
+
+  if (parts.length === 0) return 'U';
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
+export default function Navbar() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [taskMenuOpen, setTaskMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-    setShowDropdown(false);
+  const activeItem = useMemo(() => {
+    return mainNavItems.find((item) => location.pathname.startsWith(item.path));
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    if (typeof logout === 'function') {
+      logout();
+    }
+
+    navigate('/login', { replace: true });
   };
 
-  const navLinks = [
-    { name: "Home", path: "/", icon: Home },
-    { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-    { name: "Help Center", path: "/requests", icon: List },
-    { name: "Profile", path: "/profile", icon: User },
-    { name: "Resources", path: "/resources", icon: Box },
-    { name: "Community", path: "/community", icon: Users },
-    { name: "Safe Status", path: "/safe-status", icon: Shield },
-  ];
-
-  const taskLinks = [
-    { name: "Post Task", path: "/tasks/new", icon: Plus },
-    { name: "My Tasks", path: "/tasks/mine", icon: List },
-  ];
-
-  const isActive = (path) => location.pathname === path;
-
-  const userName = user?.name || "User";
-  const userInitial = userName.charAt(0).toUpperCase();
-
   return (
-    <nav className="bg-white shadow-lg sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <Shield className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-800">
-                HyperLocal
-              </span>
-            </Link>
-          </div>
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-20 items-center justify-between gap-4">
+          {/* Brand */}
+          <Link to="/safe-status" className="group flex items-center gap-3">
+            <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-200">
+              <HeartPulse className="h-6 w-6" />
+              <div className="absolute inset-0 bg-white/10 opacity-0 transition group-hover:opacity-100" />
+            </div>
 
-          {/* Desktop menu */}
-          <div className="hidden md:flex md:items-center md:space-x-4">
-            {user &&
-              navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-2
-                  ${
-                    isActive(link.path)
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }
-                `}
-                >
-                  <link.icon className="h-4 w-4" />
-                  {link.name}
-                </Link>
-              ))}
+            <div className="hidden sm:block">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-600">
+                HLRN
+              </p>
+              <h1 className="text-base font-bold text-slate-900">
+                Resilience Network
+              </h1>
+            </div>
+          </Link>
 
-            {user && (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setTaskMenuOpen((prev) => !prev)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2 ${
-                    taskMenuOpen
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  <Plus className="h-4 w-4" />
-                  Tasks
-                </button>
+          {/* Desktop nav */}
+          <nav className="hidden flex-1 items-center justify-center lg:flex">
+            <div className="flex items-center gap-2 rounded-3xl border border-slate-200 bg-slate-50 p-2">
+              {mainNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname.startsWith(item.path);
 
-                {taskMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-3xl border border-slate-200 bg-white shadow-lg ring-1 ring-black/5">
-                    {taskLinks.map((link) => (
-                      <Link
-                        key={link.path}
-                        to={link.path}
-                        onClick={() => setTaskMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50"
-                      >
-                        <link.icon className="h-4 w-4" />
-                        {link.name}
-                      </Link>
-                    ))}
-                  </div>
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`group flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                      isActive
+                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-200'
+                        : 'text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm'
+                    }`}
+                  >
+                    <Icon
+                      className={`h-4 w-4 ${
+                        isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-600'
+                      }`}
+                    />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+
+          {/* Right side */}
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-3 rounded-3xl border border-slate-200 bg-white px-3 py-2 shadow-sm md:flex">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+                {user?.name ? (
+                  <span className="text-sm font-bold">{getInitials(user.name)}</span>
+                ) : (
+                  <UserRound className="h-5 w-5" />
                 )}
               </div>
-            )}
-          </div>
 
-          {/* User section */}
-          <div className="hidden md:flex md:items-center">
-            {user ? (
-              <div className="relative ml-3">
-                <button
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-                    {userInitial}
-                  </div>
-                </button>
-
-                {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                    <div className="px-4 py-2 text-sm border-b">
-                      <p className="font-medium">{userName}</p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
-                    </div>
-
-                    <Link
-                      to="/profile"
-                      onClick={() => setShowDropdown(false)}
-                      className="flex items-center px-4 py-2 text-sm hover:bg-gray-100"
-                    >
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </Link>
-
-                    <button
-                      onClick={handleLogout}
-                      className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Logout
-                    </button>
-                  </div>
-                )}
+              <div className="max-w-[170px]">
+                <p className="truncate text-sm font-bold text-slate-900">
+                  {user?.name || 'Resident'}
+                </p>
+                <p className="truncate text-xs text-slate-500">
+                  {user?.email || user?.role || 'Community member'}
+                </p>
               </div>
-            ) : (
-              <div className="flex space-x-2">
-                <Link
-                  to="/login"
-                  className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Sign Up
-                </Link>
-              </div>
-            )}
-          </div>
+            </div>
 
-          {/* Mobile button */}
-          <div className="flex md:hidden items-center">
-            <button onClick={() => setIsOpen(!isOpen)}>
-              {isOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
+            <button
+              type="button"
+              className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-blue-600 md:flex"
+              title="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="hidden items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 md:inline-flex"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileOpen((prev) => !prev)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 lg:hidden"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Mobile menu */}
-      {isOpen && (
-        <div className="md:hidden border-t">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            {user &&
-              navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setIsOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-base font-medium
-                  ${
-                    isActive(link.path)
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }
-                `}
-                >
-                  {link.name}
-                </Link>
-              ))}
-
-            {user && (
-              <div className="border-t border-slate-200 pt-3">
-                <p className="px-3 pb-2 text-xs uppercase tracking-wide text-slate-500">
-                  Tasks
-                </p>
-                {taskLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    onClick={() => setIsOpen(false)}
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
-                  >
-                    {link.name}
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {user ? (
-              <>
-                <Link
-                  to="/profile"
-                  onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-                >
-                  Profile
-                </Link>
-
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setIsOpen(false);
-                  }}
-                  className="block w-full text-left px-3 py-2 text-red-600 hover:bg-gray-100 rounded-md"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="block px-3 py-2 text-gray-700 hover:bg-gray-100"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="block px-3 py-2 bg-blue-600 text-white rounded-md"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
+        {/* Mobile active breadcrumb */}
+        <div className="flex items-center gap-2 border-t border-slate-100 py-3 lg:hidden">
+          <LayoutGrid className="h-4 w-4 text-blue-600" />
+          <p className="text-sm font-semibold text-slate-700">
+            {activeItem?.name || 'Dashboard'}
+          </p>
         </div>
-      )}
-    </nav>
-  );
-};
 
-export default Navbar;
+        {/* Mobile nav */}
+        {mobileOpen && (
+          <div className="border-t border-slate-100 pb-4 pt-3 lg:hidden">
+            <div className="grid gap-2">
+              {mainNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname.startsWith(item.path);
+
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-3 rounded-3xl border p-4 transition ${
+                      isActive
+                        ? 'border-blue-100 bg-blue-50 text-blue-700'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                        isActive
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-bold">{item.name}</p>
+                      <p className="mt-0.5 text-xs opacity-75">{item.description}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white">
+                  {user?.name ? (
+                    <span className="text-sm font-bold">{getInitials(user.name)}</span>
+                  ) : (
+                    <UserRound className="h-5 w-5" />
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-slate-900">
+                    {user?.name || 'Resident'}
+                  </p>
+                  <p className="truncate text-xs text-slate-500">
+                    {user?.email || 'Community member'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+}
