@@ -50,18 +50,24 @@ exports.updateSkills = async (req, res) => {
       return res.status(400).json({ message: 'Skills must be an array.' });
     }
 
-    const user = await User.findById(req.user._id);
+    const normalizedSkills = normalizeSkills(skills);
+
+    // Use updateOne to only update skills, avoiding validation on other fields
+    await User.updateOne(
+      { _id: req.user._id },
+      { $set: { skills: normalizedSkills } }
+    );
+
+    // Fetch the updated user to return the new list
+    const user = await User.findById(req.user._id).select('skills').lean();
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.skills = normalizeSkills(skills);
-    await user.save();
-
-    const activeSkills = user.skills
+    const activeSkills = (user.skills || [])
       .filter((skill) => !skill.deleted)
-      .map(skill =>transformSkill(skill.toObject()));
+      .map(transformSkill);
 
     res.json({ skills: activeSkills });
   } catch (error) {
@@ -70,9 +76,6 @@ exports.updateSkills = async (req, res) => {
   }
 };
 
-// @desc    Get current user's skills profile
-// @route   GET /api/skills/my-profile
-// @access  Private
 exports.getMyProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('skills').lean();

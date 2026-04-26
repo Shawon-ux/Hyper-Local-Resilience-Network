@@ -1,6 +1,14 @@
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Shield, Users, Clock, Award, LayoutDashboard, MapPinned } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import CreateTaskForm from "../components/CreateTaskForm";
+import {
+  Shield,
+  Users,
+  Clock,
+  Award,
+  LayoutDashboard,
+  MapPinned,
+} from "lucide-react";
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -8,27 +16,27 @@ const HomePage = () => {
   const features = [
     {
       icon: Shield,
-      title: 'Hyperlocal Resilience',
+      title: "Hyperlocal Resilience",
       description:
-        'Connect with neighbors in your immediate area for everyday help and emergency support.',
+        "Connect with neighbors in your immediate area for everyday help and emergency support.",
     },
     {
       icon: Users,
-      title: 'Skill-Based Matching',
+      title: "Skill-Based Matching",
       description:
-        'Find volunteers with the right skills for your micro-tasks or urgent needs.',
+        "Find volunteers with the right skills for your micro-tasks or urgent needs.",
     },
     {
       icon: Clock,
-      title: 'Real-Time Alerts',
+      title: "Real-Time Alerts",
       description:
-        'Get instant notifications for local crises and community announcements.',
+        "Get instant notifications for local crises and community announcements.",
     },
     {
       icon: Award,
-      title: 'Reputation System',
+      title: "Reputation System",
       description:
-        'Build trust through verified completions and community endorsements.',
+        "Build trust through verified completions and community endorsements.",
     },
   ];
 
@@ -43,8 +51,9 @@ const HomePage = () => {
             </h1>
 
             <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-              A hyperlocal resilience network connecting neighbors to share resources, skills,
-              and support — before, during, and after emergencies.
+              A hyperlocal resilience network connecting neighbors to share
+              resources, skills, and support — before, during, and after
+              emergencies.
             </p>
 
             {!user && (
@@ -114,7 +123,9 @@ const HomePage = () => {
                     <h3 className="text-lg leading-6 font-medium text-gray-900">
                       {feature.title}
                     </h3>
-                    <p className="mt-2 text-base text-gray-500">{feature.description}</p>
+                    <p className="mt-2 text-base text-gray-500">
+                      {feature.description}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -124,13 +135,16 @@ const HomePage = () => {
       </div>
 
       {user && (
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="bg-blue-50 rounded-lg p-6">
             <p className="text-blue-800 text-center">
-              Welcome back, <strong>{user.name}</strong>! Your reputation score:{' '}
+              Welcome back, <strong>{user.name}</strong>! Your reputation score:{" "}
               {user.reputationScore || 0}
             </p>
           </div>
+
+          {/* Optional: Quick Create Task Form - Comment out if not desired on homepage */}
+          <CreateTaskForm />
         </div>
       )}
     </div>

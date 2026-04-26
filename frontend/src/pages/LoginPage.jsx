@@ -29,8 +29,9 @@ const LoginPage = () => {
     setLoginError('');
     const result = await login(data);
     if (result.success) {
-      const redirectTo = location.state?.from?.pathname || '/';
-      navigate(redirectTo, { replace: true });
+      // Redirect to the page user tried to visit before login, or dashboard as fallback
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
     } else {
       setLoginError(result.error || 'Login failed');
     }

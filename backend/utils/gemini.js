@@ -46,4 +46,9 @@ const getSkillSuggestions = async (taskDescription) => {
   }
 };
 
-module.exports = { getSkillSuggestions };
+const getSkillSuggestions = async (taskDescription) => {
+  const analysis = await analyzeTaskDescription(taskDescription);
+  return analysis.skills;
+};
+
+module.exports = { getSkillSuggestions, analyzeTaskDescription, AGENT_TAXONOMY };
