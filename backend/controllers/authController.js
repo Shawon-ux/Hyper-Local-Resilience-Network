@@ -72,7 +72,7 @@ exports.register = async (req, res) => {
     /* COOKIE */
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
@@ -149,7 +149,7 @@ exports.login = async (req, res) => {
     /* COOKIE */
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });

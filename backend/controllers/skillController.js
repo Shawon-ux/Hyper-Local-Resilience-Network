@@ -39,7 +39,9 @@ const normalizeSkills = (skills = []) =>
     return normalized;
   });
 
-
+// @desc    Create/update user's skills and availability
+// @route   PUT /api/skills/profile
+// @access  Private
 exports.updateSkills = async (req, res) => {
   try {
     const { skills } = req.body;
@@ -74,7 +76,6 @@ exports.updateSkills = async (req, res) => {
   }
 };
 
-
 exports.getMyProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('skills').lean();
@@ -95,7 +96,9 @@ exports.getMyProfile = async (req, res) => {
   }
 };
 
-
+// @desc    Perform bulk skill actions for selected skill ids
+// @route   PUT /api/skills/batch
+// @access  Private
 exports.bulkUpdateSkills = async (req, res) => {
   try {
     const { skillIds, action } = req.body;

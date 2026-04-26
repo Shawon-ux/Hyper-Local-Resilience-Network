@@ -15,9 +15,14 @@ const fs = require("fs");
 dotenv.config();
 const connectDB = require("./config/db");
 
-// Route Imports
+// Route Imports - MERGE ALL routes from both branches
 const authRoutes = require("./routes/authRoutes");
 const resourceRoutes = require("./routes/resourceRoutes");
+const skillRoutes = require("./routes/skillRoutes");
+const microTaskRoutes = require("./routes/microTaskRoutes");
+const matchingRoutes = require("./routes/matchingRoutes");
+const reputationRoutes = require("./routes/reputationRoutes");
+const communityRoutes = require("./routes/communityRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const alertRoutes = require("./routes/alertRoutes");
 const readinessRoutes = require("./routes/readinessRoutes");
@@ -25,38 +30,47 @@ const readinessRoutes = require("./routes/readinessRoutes");
 const app = express();
 const server = http.createServer(app);
 
-const FRONTEND_URL = "http://localhost:5173";
+// CORS configuration - Use environment variable with fallback
+const allowedOrigins = (process.env.FRONTEND_URLS || "http://localhost:5173,http://localhost:8000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-// Socket.io Setup
 const io = new Server(server, {
-  cors: { origin: FRONTEND_URL, credentials: true }
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  }
 });
+
 app.set("io", io);
 global.__io = io;
 
+// Middleware
 app.use(helmet());
 
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin: allowedOrigins,
     credentials: true,
   })
 );
+
 app.use(morgan("dev"));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Rate Limiter - Apply ONLY to API, but keep it high for dev
+// Rate Limiter - Apply ONLY to API
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 1000,
+  max: 1000, // Using main branch's higher limit for development
   message: "Too many requests from this IP, please try again later.",
 });
+
 app.use("/api", limiter);
 
-// Routes
-
+// Test routes
 app.get("/", (req, res) => {
   res.send("Hyper Local Resilience Network API is running");
 });
@@ -80,25 +94,45 @@ app.get("/api/db-status", (req, res) => {
   });
 });
 
-// API routes
-app.use("/api/notifications", notificationRoutes);
+// API routes - MERGE ALL routes from both branches
 app.use("/api/auth", authRoutes);
-app.use("/api/resources", resourceRoutes); 
+app.use("/api/resources", resourceRoutes);
+app.use("/api/skills", skillRoutes);
+app.use("/api/microtasks", microTaskRoutes);
+app.use("/api/matching", matchingRoutes);
+app.use("/api/reputation", reputationRoutes);
+app.use("/api/communities", communityRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/readiness", readinessRoutes);
 
-// Socket.io
+// Socket.io - MERGED handlers
 io.on("connection", (socket) => {
-  console.log(`A user connected: ${socket.id}`.green);
-
+  console.log(`User connected: ${socket.id}`.green);
+  
+  // From sadia-final-plus
   socket.on("register", (userId) => {
     socket.join(userId);
     console.log(`User ${userId} joined room`.blue);
   });
+  
+  // From main branch
+  socket.on("register:user", (userId) => {
+    if (!userId) return;
+    socket.join(`user:${String(userId)}`);
+    console.log(`User ${userId} registered to user room`.blue);
+  });
+  
+  // Handle both naming conventions for compatibility
+  socket.on("register:both", (userId) => {
+    if (!userId) return;
+    socket.join(userId);
+    socket.join(`user:${String(userId)}`);
+    console.log(`User ${userId} registered to both room types`.blue);
+  });
 
   socket.on("disconnect", () => {
-    console.log(`A user disconnected: ${socket.id}`.red);
+    console.log(`User disconnected: ${socket.id}`.red);
   });
 });
 
@@ -109,27 +143,27 @@ app.use((req, res) => {
   });
 });
 
-// Socket Logic
-io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`.cyan);
+// Error handler (from sadia-final-plus - more robust)
+app.use((err, req, res, next) => {
+  console.error(err.stack?.red || err);
 
-  socket.on("register:user", (userId) => {
-    if (!userId) return;
-    socket.join(`user:${String(userId)}`);
+  res.status(err.status || 500).json({
+    message: err.message || "Server error",
   });
 });
 
-// START SERVER
-const PORT = 9457; // Forced to match your Vite Proxy
-const startServer = async () => {
-  try {
-    await connectDB();
+// PORT configuration - Use env var with fallbacks
+const PORT = process.env.PORT || 9457; // Default to 9457 for Vite proxy, but allow override
+
+// Start server
+connectDB()
+  .then(() => {
     server.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`.yellow.bold);
+      console.log(`CORS enabled for: ${allowedOrigins.join(", ")}`.cyan);
     });
-  } catch (error) {
-    console.log("Failed to start server: ".red, error);
-  }
-};
-
-startServer();
+  })
+  .catch((error) => {
+    console.error("Database connection failed:".red, error.message);
+    process.exit(1);
+  });

@@ -1,50 +1,29 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+// Skill schema (from sadia-final-plus)
 const skillSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    category: {
-      type: String,
-      default: "General",
-      trim: true,
-    },
+    name: { type: String, required: [true, 'Please add a skill name'], trim: true },
+    category: { type: String, trim: true, default: 'General' },
     level: {
       type: String,
-      enum: ["beginner", "intermediate", "expert"],
-      default: "intermediate",
+      enum: ['beginner', 'intermediate', 'expert'],
+      default: 'intermediate',
     },
-    available: {
-      type: Boolean,
-      default: true,
-    },
-    yearsOfExperience: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    hourlyRate: {
-      type: mongoose.Schema.Types.Decimal128,
-      default: 0,
-    },
-    lastVerified: {
-      type: Date,
-      default: Date.now,
-    },
-    deleted: {
-      type: Boolean,
-      default: false,
-    },
+    available: { type: Boolean, default: true },
+    yearsOfExperience: { type: Number, default: 0, min: 0 },
+    hourlyRate: { type: mongoose.Schema.Types.Decimal128, default: 0.0 },
+    lastVerified: { type: Date, default: Date.now },
+    deleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
+// Main user schema (merged from both branches)
 const userSchema = new mongoose.Schema(
   {
+    // Basic info (from both)
     name: {
       type: String,
       required: [true, "Please add a name"],
@@ -86,12 +65,22 @@ const userSchema = new mongoose.Schema(
       minlength: 6,
       select: false,
     },
+    
+    // Skills and basic reputation (from sadia-final-plus)
+    skills: [skillSchema],
+    reputationScore: { type: Number, default: 0 },
+    
+    // Admin and crisis features (from main)
     isAdmin: {
       type: Boolean,
       default: false,
     },
-    skills: [skillSchema],
-    reputationScore: { type: Number, default: 0, index: true },
+    crisisAlertActive: {
+      type: Boolean,
+      default: true,
+    },
+    
+    // Advanced reputation system (from main)
     reputation: {
       totalVouches: { type: Number, default: 0 },
       skillEndorsements: {
@@ -115,21 +104,15 @@ const userSchema = new mongoose.Schema(
       lastVouchDate: Date,
       trustScore: { type: Number, default: 0 },
     },
+    
+    // Availability and socket (from main)
     availabilityStatus: { type: Boolean, default: true },
-    crisisAlertActive: {
-      type: Boolean,
-      default: true,
-    },
-    skills: [skillSchema],
-    reputationScore: {
-      type: Number,
-      default: 0,
-    },
     socketId: {
       type: String,
       default: null,
     },
-    // --- EMERGENCY MODE ADDITIONS ---
+    
+    // Emergency safety features (from main)
     safetyStatus: {
       type: String,
       enum: ["Safe", "In Danger", "Evacuated", "Unknown"],
@@ -143,8 +126,11 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Add index for reputationScore (from main)
+userSchema.index({ reputationScore: -1 });
+
 /**
- * FIXED PRE-SAVE MIDDLEWARE
+ * PRE-SAVE MIDDLEWARE
  */
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) {

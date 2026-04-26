@@ -26,6 +26,7 @@ const RegisterPage = () => {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
   const [locationError, setLocationError] = useState('');
+  const [registerError, setRegisterError] = useState('');
 
   const {
     register,
@@ -58,11 +59,14 @@ const RegisterPage = () => {
   };
 
   const onSubmit = async (data) => {
+    setRegisterError('');
     // eslint-disable-next-line no-unused-vars
     const { confirmPassword, ...userData } = data;
     const result = await registerUser(userData);
     if (result.success) {
       navigate('/');
+    } else {
+      setRegisterError(result.error || 'Registration failed');
     }
   };
 
@@ -189,6 +193,12 @@ const RegisterPage = () => {
               </div>
               {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>}
             </div>
+
+            {registerError && (
+              <div className="rounded-md bg-red-50 p-4">
+                <p className="text-sm text-red-700">{registerError}</p>
+              </div>
+            )}
 
             <div>
               <button

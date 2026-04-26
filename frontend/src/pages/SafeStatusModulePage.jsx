@@ -124,12 +124,24 @@ export default function SafeStatusModulePage() {
     );
   };
 
+  // MERGED: Try both API endpoints for emergency status
   const fetchEmergencyState = async () => {
     try {
+      // Try main branch endpoint first
       const { data } = await api.get('/resources/emergency/status');
       setEmergencyActive(Boolean(data?.isActive));
     } catch {
-      setEmergencyActive(false);
+      try {
+        // Fall back to sadia-final-plus endpoint
+        const { data } = await api.get('/safe-status/meta');
+        if (typeof data?.emergencyActive === 'boolean') {
+          setEmergencyActive(data.emergencyActive);
+        } else {
+          setEmergencyActive(true);
+        }
+      } catch {
+        setEmergencyActive(true);
+      }
     }
   };
 
@@ -174,6 +186,7 @@ export default function SafeStatusModulePage() {
     }));
   }, [user]);
 
+  // MERGED: Support both socket event naming conventions
   useEffect(() => {
     socket.connect();
 
@@ -181,11 +194,14 @@ export default function SafeStatusModulePage() {
       fetchReports().catch(() => {});
     };
 
+    // Support events from both branches
     const events = [
       'safeStatusCreated',
       'safeStatusUpdated',
       'safeStatusDeleted',
       'safeStatusValidated',
+      'emergencyDeclared',
+      'emergencyEnded',
       'EMERGENCY_STATUS_CHANGE',
     ];
 

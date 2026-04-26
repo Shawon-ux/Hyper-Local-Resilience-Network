@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +14,7 @@ const loginSchema = z.object({
 const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loginError, setLoginError] = useState('');
 
   const {
@@ -28,7 +29,9 @@ const LoginPage = () => {
     setLoginError('');
     const result = await login(data);
     if (result.success) {
-      navigate('/');
+      // Redirect to the page user tried to visit before login, or dashboard as fallback
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
     } else {
       setLoginError(result.error || 'Login failed');
     }

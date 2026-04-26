@@ -3,17 +3,28 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
+const extractErrorMessage = (error, fallbackMessage) => {
+  const responseData = error?.response?.data;
+
+  if (typeof responseData?.message === 'string' && responseData.message.trim()) {
+    return responseData.message;
+  }
+
+  if (Array.isArray(responseData?.errors) && responseData.errors.length > 0) {
+    const first = responseData.errors[0];
+    if (typeof first?.msg === 'string' && first.msg.trim()) return first.msg;
+  }
+
+  if (typeof error?.message === 'string' && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallbackMessage;
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const getErrorMessage = (error, fallback) => {
-    return (
-      error.response?.data?.message ||
-      error.response?.data?.errors?.[0]?.msg ||
-      fallback
-    );
-  };
 
   const getCurrentUser = async () => {
     try {
@@ -24,7 +35,7 @@ export function AuthProvider({ children }) {
       setUser(null);
       return {
         success: false,
-        error: error.response?.data?.message || 'Failed to fetch user',
+        error: extractErrorMessage(error, 'Failed to fetch user'),
       };
     } finally {
       setLoading(false);
@@ -49,7 +60,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.message || 'Login failed',
+        error: extractErrorMessage(error, 'Login failed'),
       };
     }
   };
@@ -68,7 +79,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.message || 'Registration failed',
+        error: extractErrorMessage(error, 'Registration failed'),
       };
     }
   };
