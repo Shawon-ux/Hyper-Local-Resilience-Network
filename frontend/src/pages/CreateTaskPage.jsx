@@ -6,7 +6,7 @@ const CreateTaskPage = () => {
       <div className="mx-auto max-w-4xl rounded-3xl bg-white p-8 shadow-lg ring-1 ring-slate-200">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-slate-900">
-            Post a new micro-task
+            Micro-task Seciton
           </h1>
           <p className="mt-2 text-sm text-slate-600">
             Use this page to create a task from your profile location or current

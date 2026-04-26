@@ -38,15 +38,7 @@ import MatchingPage from "./pages/MatchingPage.jsx";
 // Reputation (main)
 import ReputationProfilePage from "./pages/ReputationProfilePage.jsx";
 
-// Inline Pages
-const DashboardPage = () => (
-  <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-    <p className="mt-4 text-gray-600">
-      Welcome to your dashboard. Other modules and summaries can appear here.
-    </p>
-  </div>
-);
+// Inline Pages - removed unused DashboardPage
 
 function App() {
   return (
@@ -61,16 +53,6 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-
-          {/* Dashboard */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
 
           {/* Profile & Reputation */}
           <Route

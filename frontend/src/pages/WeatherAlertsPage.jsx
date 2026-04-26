@@ -21,7 +21,7 @@ import CommunityAlertsPanel from "../components/CommunityAlertsPanel";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
-const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:9457", {
+const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
   autoConnect: false,
 });
 

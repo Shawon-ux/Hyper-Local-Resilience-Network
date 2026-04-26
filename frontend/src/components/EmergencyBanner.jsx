@@ -4,7 +4,7 @@ import { AlertTriangle, Siren } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 
-const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:9457", {
+const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
   autoConnect: false,
 });
 

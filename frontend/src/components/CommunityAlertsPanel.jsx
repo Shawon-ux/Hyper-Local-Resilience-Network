@@ -7,7 +7,7 @@ const severityOptions = ["Minor", "Moderate", "Severe", "Extreme"];
 const urgencyOptions = ["Future", "Expected", "Immediate"];
 const typeOptions = ["Flood", "Storm", "Earthquake", "Fire", "Heatwave", "Landslide"];
 
-const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:9457", {
+const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
   autoConnect: false,
 });
 

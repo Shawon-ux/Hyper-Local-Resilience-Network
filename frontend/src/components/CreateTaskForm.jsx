@@ -19,14 +19,14 @@ const CreateTaskForm = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState("Medium");
-  
+
   // Location state: store both address (display) and coordinates (backend)
   const [locationAddress, setLocationAddress] = useState("");
   const [locationLat, setLocationLat] = useState(null);
   const [locationLng, setLocationLng] = useState(null);
   const [locationSource, setLocationSource] = useState("profile");
   const [geoStatus, setGeoStatus] = useState("");
-  
+
   const [suggestedSkills, setSuggestedSkills] = useState([]);
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [customSkill, setCustomSkill] = useState("");
@@ -48,7 +48,7 @@ const CreateTaskForm = () => {
       getAddressFromCoordinates(user.location.lat, user.location.lng).then(
         (data) => {
           setLocationAddress(data.address);
-        }
+        },
       );
     }
   }, [user?.location]);
@@ -87,17 +87,20 @@ const CreateTaskForm = () => {
       setLocationSource("profile");
       setError("");
       setGeoStatus("Loading address...");
-      
-      getAddressFromCoordinates(user.location.lat, user.location.lng).then(
-        (data) => {
+
+      getAddressFromCoordinates(user.location.lat, user.location.lng)
+        .then((data) => {
           setLocationAddress(data.address);
-          setGeoStatus("");
-        }
-      ).catch((err) => {
-        setGeoStatus("Could not fetch address");
-      });
+          setGeoStatus("✓ Profile location loaded");
+        })
+        .catch((err) => {
+          setGeoStatus("Could not fetch address");
+        });
     } else {
-      setError("Your profile location is not available.");
+      setGeoStatus(
+        "Profile location not set. Please use 'Use current location' instead or set your location in your profile.",
+      );
+      setError("");
     }
   };
 
@@ -105,7 +108,7 @@ const CreateTaskForm = () => {
     setLocatingGeo(true);
     setGeoStatus("Getting your current location...");
     setError("");
-    
+
     try {
       const locationData = await getCurrentLocationWithAddress();
       setLocationLat(locationData.lat);
@@ -248,23 +251,34 @@ const CreateTaskForm = () => {
                 Task location
               </p>
               <p className="mt-1 text-sm text-slate-500">
-                Choose your saved profile location or get your current
-                browser location. Address will be displayed automatically.
+                Choose your saved profile location or get your current browser
+                location. Address will be displayed automatically.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={handleUseProfileLocation}
-                className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:border-blue-500 hover:text-blue-700 transition"
+                className={`rounded-2xl border px-4 py-2 text-sm shadow-sm transition ${
+                  user?.location?.lat
+                    ? "border-slate-300 bg-white text-slate-700 hover:border-blue-500 hover:text-blue-700"
+                    : "border-gray-300 bg-gray-50 text-gray-500 opacity-60"
+                }`}
+                title={
+                  !user?.location?.lat
+                    ? "Set location in your profile first, or use current location"
+                    : ""
+                }
               >
-                Use profile location
+                {user?.location?.lat
+                  ? "Use profile location"
+                  : "Profile location not set"}
               </button>
               <button
                 type="button"
                 onClick={handleUseCurrentLocation}
                 disabled={locatingGeo}
-                className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:border-blue-500 hover:text-blue-700 transition disabled:opacity-50"
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:border-green-500 hover:text-green-700 transition disabled:opacity-50"
               >
                 {locatingGeo ? "Getting location..." : "Use current location"}
               </button>
@@ -286,20 +300,25 @@ const CreateTaskForm = () => {
               <div className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <span className="block text-xs text-slate-500 mb-1">Address</span>
+                  <span className="block text-xs text-slate-500 mb-1">
+                    Address
+                  </span>
                   <span className="block font-medium">
                     {locationAddress || "Not selected"}
                   </span>
                   {locationLat && locationLng && (
                     <span className="block text-xs text-slate-500 mt-1">
-                      Coordinates: {locationLat.toFixed(4)}, {locationLng.toFixed(4)}
+                      Coordinates: {locationLat.toFixed(4)},{" "}
+                      {locationLng.toFixed(4)}
                     </span>
                   )}
                 </div>
               </div>
             </div>
             {geoStatus && (
-              <p className={`text-sm ${geoStatus.includes("✓") ? "text-emerald-600" : "text-blue-600"}`}>
+              <p
+                className={`text-sm ${geoStatus.includes("✓") ? "text-emerald-600" : "text-blue-600"}`}
+              >
                 {geoStatus}
               </p>
             )}
@@ -384,7 +403,7 @@ const CreateTaskForm = () => {
                     type="button"
                     onClick={() =>
                       setSelectedSkills((prev) =>
-                        prev.filter((s, i) => i !== index)
+                        prev.filter((s, i) => i !== index),
                       )
                     }
                     className="text-white hover:text-blue-100"

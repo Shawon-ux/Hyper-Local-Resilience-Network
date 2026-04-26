@@ -355,6 +355,7 @@ const ProfilePage = () => {
   };
 
   const handleSelection = (skillId) => {
+    // Enable bulk select mode when selecting
     if (!bulkSelectMode) {
       setBulkSelectMode(true);
     }
@@ -514,7 +515,6 @@ const ProfilePage = () => {
     });
     setSearchTerm("");
     setSelectedIds([]);
-    setBulkSelectMode(false);
   };
 
   return (
@@ -575,7 +575,6 @@ const ProfilePage = () => {
               </div>
             </section>
 
-            {/* Search and Filters - Keep your original structure */}
             <section className="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm">
               <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
                 <div className="space-y-4">
@@ -659,7 +658,6 @@ const ProfilePage = () => {
               </div>
             </section>
 
-            {/* Skills List - MERGED with bulk select mode support */}
             <section className="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -711,7 +709,7 @@ const ProfilePage = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-4">
                     {filteredSkills.map((skill, index) => {
                       const skillId = getSkillId(skill, index);
                       const isSelected = selectedIds.includes(skillId);
@@ -812,7 +810,6 @@ const ProfilePage = () => {
           </main>
 
           <aside className="w-full max-w-xl space-y-6 lg:sticky lg:top-6 lg:self-start">
-            {/* Add/Edit Skill Form - KEEP YOUR ORIGINAL */}
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-blue-600 p-3 text-white">
@@ -991,7 +988,6 @@ const ProfilePage = () => {
               </form>
             </section>
 
-            {/* Bulk Management Section - MERGED with enhanced UX */}
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className={`rounded-2xl p-3 ${bulkSelectMode ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
@@ -1047,7 +1043,6 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Floating Bulk Action Bar */}
       {selectedIds.length >= 2 && (
         <div className="fixed bottom-4 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 items-center justify-between rounded-3xl border border-slate-200 bg-white/95 px-5 py-4 shadow-xl backdrop-blur-sm">
           <div className="text-sm font-semibold text-slate-900">
@@ -1079,19 +1074,14 @@ const ProfilePage = () => {
         </div>
       )}
 
-      {/* Confirmation Modal - CLEANED UP */}
       {confirmState.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-3xl bg-white p-6 shadow-xl max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-slate-900">
-              Confirm {confirmState.mode === "single" ? "Delete" : "Bulk Delete"}
+          <div className="rounded-3xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-900">
+              Confirm {confirmState.mode === "single" ? "delete" : "bulk delete"}
             </h3>
-            <p className="mt-4 text-sm text-slate-600">
-              Are you sure you want to delete{" "}
-              {confirmState.mode === "bulk"
-                ? confirmState.label
-                : `"${confirmState.label}"`}
-              ? This action uses soft delete and preserves the history.
+            <p className="mt-3 text-sm text-slate-600">
+              Are you sure you want to delete {confirmState.label}? This action cannot be undone.
             </p>
             <div className="mt-6 flex gap-3 justify-end">
               <button
@@ -1112,15 +1102,6 @@ const ProfilePage = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Status/Error Toast */}
-      {(status || error) && (
-        <div
-          className={`fixed bottom-4 right-4 z-50 rounded-3xl border px-5 py-4 text-sm shadow-lg transition duration-200 ${status ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-rose-200 bg-rose-50 text-rose-900"}`}
-        >
-          {status || error}
         </div>
       )}
     </div>

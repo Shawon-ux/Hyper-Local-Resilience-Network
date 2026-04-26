@@ -7,7 +7,7 @@ import Layout from "../components/Layout";
 import Panel from "../components/Panel";
 import Toast from "../components/Toast";
 
-const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:9457", {
+const socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
   autoConnect: false,
 });
 

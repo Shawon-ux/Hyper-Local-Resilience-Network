@@ -81,11 +81,11 @@ const HomePage = () => {
             {user && (
               <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link
-                  to="/dashboard"
+                  to="/profile"
                   className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-8 py-3 text-base font-medium text-white shadow hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
                 >
                   <LayoutDashboard className="h-5 w-5" />
-                  Go to Dashboard
+                  Go to Profile
                 </Link>
 
                 <Link
@@ -144,7 +144,7 @@ const HomePage = () => {
           </div>
 
           {/* Optional: Quick Create Task Form - Comment out if not desired on homepage */}
-          <CreateTaskForm />
+          {/* <CreateTaskForm /> */}
         </div>
       )}
     </div>

@@ -5,7 +5,7 @@ useEffect(() => {
   axios.get('/api/resources').then(res => setResources(res.data));
 
   // 2. Real-time Listener (Feature-2)
-  const socket = io('http://localhost:9457');
+  const socket = io('http://localhost:5000');
   socket.on('resourceUpdate', (updatedData) => {
     setResources(updatedData); // This makes it change automatically!
   });

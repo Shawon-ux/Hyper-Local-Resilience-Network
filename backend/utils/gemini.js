@@ -8,10 +8,70 @@ if (process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim() !== '') {
   });
 }
 
-const getSkillSuggestions = async (taskDescription) => {
+const AGENT_TAXONOMY = [
+  'Medical',
+  'Mechanical',
+  'Delivery',
+  'Technical',
+  'Cleaning',
+  'Construction',
+  'Transportation',
+  'Food',
+  'Childcare',
+  'Pet Care',
+  'First Aid',
+  'Automotive',
+  'Energy',
+  'Communication',
+  'Logistics',
+  "Water Treatment",
+  "Firecraft",
+  "Shelter Building",
+  "Self Defense",
+  "Gardening",
+  "Sewing",
+  "Plumbing",
+  "Carpentry",
+  "Hunting",
+  "Foraging",
+  "Weather Forecasting",
+  "Emergency Management",
+  "Crisis Negotiation",
+  "Mental Health",
+  "Rope Work",
+  "Radio Operation",
+  "Bartering",
+  "Financial Literacy",
+  "cooking",
+  "Fire Fighting"
+];
+
+const parseAnalysisResponse = (output) => {
+  const jsonMatch = output.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return { intent: '', skills: [] };
+  }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    const skills = Array.isArray(parsed.skills)
+      ? parsed.skills.map((skill) => skill.toString().trim()).filter(Boolean)
+      : [];
+
+    return {
+      intent: parsed.intent ? parsed.intent.toString().trim() : '',
+      skills,
+    };
+  } catch (error) {
+    console.error('Failed to parse AI response:', error.message || error);
+    return { intent: '', skills: [] };
+  }
+};
+
+const analyzeTaskDescription = async (taskDescription) => {
   if (!groq) {
-    console.warn('GROQ_API_KEY is missing. Returning fallback empty skill suggestions.');
-    return [];
+    console.warn('GROQ_API_KEY is missing. Returning fallback response.');
+    return { intent: '', skills: [] };
   }
 
   try {
@@ -20,29 +80,22 @@ const getSkillSuggestions = async (taskDescription) => {
         {
           role: 'system',
           content:
-            'You are a skill matching assistant. Analyze the micro-task and suggest 3-5 relevant skills from: plumbing, first-aid, electrician, driver, cooking, cleaning, gardening, carpentry, pet care, technology support, tutoring, moving help, sewing. Return only a JSON array of skill names.'
+            'You are an extraction assistant for a hyperlocal resilience network. Your only output must be valid JSON matching the schema: {"intent": string, "skills": string[]}. Do not output markdown, explanations, or additional fields.\n\nTaxonomy: Medical, Cooking, Mechanical, Delivery, Technical, Cleaning, Construction, Transportation, Food, Childcare, Pet Care, First Aid, Automotive, Energy, Communication,Navigation, Sanitation, Water Treatment, Firecraft, Shelter Building, Self Defense, Gardening, Sewing, Plumbing, Carpentry, Hunting, Foraging, Weather Forecasting, Emergency Management, Crisis Negotiation, Mental Health, Rope Work, Radio Operation, Bartering, Financial Literacy, Electrical, Masonry, Welding, Fishing, Food Preservation, Hygiene, Time Management, Decision Making, Problem Solving, Evacuation, Rescue, Triage, CPR, Fire Fighting, Knot Tying, Land Navigation..\n\nIf more than one relevant skill applies, include all that match. If none match, return an empty skills array. Example output: {"intent": "jump start car", "skills": ["Mechanical", "Automotive"]}.'
         },
         {
           role: 'user',
-          content: taskDescription
-        }
+          content: taskDescription,
+        },
       ],
       model: 'llama-3.3-70b-versatile',
-      temperature: 0.1,
+      temperature: 0.2,
     });
 
     const response = completion.choices?.[0]?.message?.content || '';
-    const jsonMatch = response.match(/\[.*\]/s);
-
-    if (jsonMatch) {
-      console.log(`Skill suggestions: ${jsonMatch[0]}`);
-      return JSON.parse(jsonMatch[0]);
-    }
-
-    return [];
+    return parseAnalysisResponse(response);
   } catch (error) {
     console.error('Groq API error:', error.message || error);
-    return [];
+    return { intent: '', skills: [] };
   }
 };
 

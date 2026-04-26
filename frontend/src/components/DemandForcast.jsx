@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
-import axios from 'axios';
-import { AlertTriangle, BellRing } from 'lucide-react'; // Optional icons
+import React, { useEffect, useState } from "react";
+import { io } from "socket.io-client";
+import api from "../services/api";
+import { AlertTriangle, BellRing } from "lucide-react"; // Optional icons
 
 const DemandForecast = () => {
   const [resources, setResources] = useState([]);
@@ -11,7 +11,7 @@ const DemandForecast = () => {
     // 1. Initial fetch
     const fetchData = async () => {
       try {
-        const res = await axios.get('http://localhost:9457/api/resources');
+        const res = await api.get("/resources");
         setResources(res.data);
         setLoading(false);
       } catch (err) {
@@ -22,31 +22,49 @@ const DemandForecast = () => {
     fetchData();
 
     // 2. Real-time changes (Feature 2 & 3)
-    const socket = io('http://localhost:9457');
-    socket.on('resourceUpdate', (data) => {
+    const socket = io(
+      import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
+    );
+    socket.on("resourceUpdate", (data) => {
       setResources(data);
     });
 
     return () => socket.disconnect();
   }, []);
 
-  if (loading) return <div className="p-4 text-center text-slate-500">Loading forecast data...</div>;
+  if (loading)
+    return (
+      <div className="p-4 text-center text-slate-500">
+        Loading forecast data...
+      </div>
+    );
 
   return (
     <div className="space-y-6">
       {/* FEATURE 4: Moderator / Community Stress Points */}
-      {resources.filter(r => (r.totalStock - r.consumed) / r.totalStock <= 0.3).length > 0 && (
+      {resources.filter(
+        (r) => (r.totalStock - r.consumed) / r.totalStock <= 0.3,
+      ).length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <h3 className="text-red-700 font-bold text-sm flex items-center gap-2 mb-3">
             <AlertTriangle size={18} /> CRITICAL RESOURCE GAPS (STRESS POINTS)
           </h3>
           <div className="flex flex-wrap gap-3">
-            {resources.filter(r => (r.totalStock - r.consumed) / r.totalStock <= 0.3).map(r => (
-              <div key={r._id} className="bg-white px-3 py-1.5 rounded-lg border border-red-100 text-xs shadow-sm">
-                <span className="font-bold text-red-600 uppercase">{r.name}:</span> 
-                <span className="ml-1 text-slate-700">Only {r.totalStock - r.consumed} {r.unit} left</span>
-              </div>
-            ))}
+            {resources
+              .filter((r) => (r.totalStock - r.consumed) / r.totalStock <= 0.3)
+              .map((r) => (
+                <div
+                  key={r._id}
+                  className="bg-white px-3 py-1.5 rounded-lg border border-red-100 text-xs shadow-sm"
+                >
+                  <span className="font-bold text-red-600 uppercase">
+                    {r.name}:
+                  </span>
+                  <span className="ml-1 text-slate-700">
+                    Only {r.totalStock - r.consumed} {r.unit} left
+                  </span>
+                </div>
+              ))}
           </div>
         </div>
       )}
@@ -57,40 +75,59 @@ const DemandForecast = () => {
           resources.map((res) => {
             const remaining = res.totalStock - res.consumed;
             const percent = (remaining / res.totalStock) * 100;
-            
+
             // Status Logic
-            let status = "Low"; 
+            let status = "Low";
             let color = "bg-green-500";
             let textColor = "text-green-700";
             let bgColor = "bg-green-100";
 
-            if (percent <= 20) { 
-              status = "High"; color = "bg-red-500"; textColor = "text-red-700"; bgColor = "bg-red-100";
-            } else if (percent <= 50) { 
-              status = "Medium"; color = "bg-yellow-500"; textColor = "text-yellow-700"; bgColor = "bg-yellow-100";
+            if (percent <= 20) {
+              status = "High";
+              color = "bg-red-500";
+              textColor = "text-red-700";
+              bgColor = "bg-red-100";
+            } else if (percent <= 50) {
+              status = "Medium";
+              color = "bg-yellow-500";
+              textColor = "text-yellow-700";
+              bgColor = "bg-yellow-100";
             }
 
             return (
-              <div key={res._id} className="border border-slate-100 p-5 rounded-2xl shadow-sm bg-white hover:shadow-md transition-shadow">
+              <div
+                key={res._id}
+                className="border border-slate-100 p-5 rounded-2xl shadow-sm bg-white hover:shadow-md transition-shadow"
+              >
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-800 capitalize leading-tight">{res.name}</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{res.unit}</p>
+                    <h3 className="text-lg font-bold text-slate-800 capitalize leading-tight">
+                      {res.name}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      {res.unit}
+                    </p>
                   </div>
-                  <span className={`${bgColor} ${textColor} px-3 py-1 rounded-full text-[10px] uppercase font-black border border-current`}>
+                  <span
+                    className={`${bgColor} ${textColor} px-3 py-1 rounded-full text-[10px] uppercase font-black border border-current`}
+                  >
                     {status} Demand
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-end mb-1 text-xs">
-                  <span className="text-slate-500 font-medium">Stock: {remaining} / {res.totalStock}</span>
-                  <span className="text-slate-800 font-bold">{Math.round(percent)}%</span>
+                  <span className="text-slate-500 font-medium">
+                    Stock: {remaining} / {res.totalStock}
+                  </span>
+                  <span className="text-slate-800 font-bold">
+                    {Math.round(percent)}%
+                  </span>
                 </div>
 
                 {/* Progress Bar */}
                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${color} transition-all duration-1000 ease-out`} 
+                  <div
+                    className={`h-full ${color} transition-all duration-1000 ease-out`}
                     style={{ width: `${percent}%` }}
                   ></div>
                 </div>
@@ -106,7 +143,8 @@ const DemandForecast = () => {
           })
         ) : (
           <div className="col-span-2 text-center py-10 border-2 border-dashed rounded-2xl text-slate-400">
-            No live demand forecast available. Start by adding resources to the database.
+            No live demand forecast available. Start by adding resources to the
+            database.
           </div>
         )}
       </div>
