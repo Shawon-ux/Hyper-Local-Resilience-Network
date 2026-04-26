@@ -55,9 +55,10 @@ const userSchema = new mongoose.Schema(
         type: Number,
         required: [true, 'Please add longitude'],
       },
-      type: String,
-      required: [true, "Please add a location"],
-      trim: true,
+      type: {
+        type: String,
+        default: "Point",
+      },
     },
     password: {
       type: String,

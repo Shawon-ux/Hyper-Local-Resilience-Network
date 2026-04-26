@@ -14,48 +14,31 @@ import {
   ShieldCheck,
   Sparkles,
   X,
+  MapPin,
+  Mail,
+  Phone,
+  Settings,
+  Navigation,
 } from "lucide-react";
 import {
   fetchProfile,
   saveProfile,
   bulkUpdateSkills,
+  updateUserProfile,
 } from "../services/profileService";
+import { useAuth } from "../context/AuthContext";
 
 const CATEGORIES = [
-  'Medical',
-  'Mechanical',
-  'Delivery',
-  'Technical',
-  'Cleaning',
-  'Construction',
-  'Transportation',
-  'Food',
-  'Childcare',
-  'Pet Care',
-  'First Aid',
-  'Automotive',
-  'Energy',
-  'Communication',
-  'Logistics',
-  "Water Treatment",
-  "Firecraft",
-  "Shelter Building",
-  "Self Defense",
-  "Gardening",
-  "Sewing",
-  "Plumbing",
-  "Carpentry",
-  "Hunting",
-  "Foraging",
-  "Weather Forecasting",
-  "Emergency Management",
-  "Crisis Negotiation",
-  "Mental Health",
-  "Rope Work",
-  "Radio Operation",
-  "Bartering",
-  "Financial Literacy",
-  "cooking"
+  'Medical', 'Mechanical', 'Delivery', 'Technical', 'Cleaning', 'Construction',
+  'Transportation', 'Food', 'Childcare', 'Pet Care', 'First Aid', 'Automotive',
+  'Energy', 'Communication', 'Logistics', 'Water Treatment', 'Firecraft',
+  'Shelter Building', 'Self Defense', 'Gardening', 'Sewing', 'Plumbing',
+  'Carpentry', 'Hunting', 'Foraging', 'Weather Forecasting', 'Emergency Management',
+  'Crisis Negotiation', 'Mental Health', 'Rope Work', 'Radio Operation',
+  'Bartering', 'Financial Literacy', 'Cooking', 'Fire Fighting', 'Electrical',
+  'Masonry', 'Welding', 'Fishing', 'Food Preservation', 'Hygiene',
+  'Time Management', 'Decision Making', 'Problem Solving', 'Evacuation',
+  'Rescue', 'Triage', 'CPR', 'Knot Tying', 'Land Navigation'
 ];
 
 const LEVEL_OPTIONS = [
@@ -110,7 +93,59 @@ const createBlankForm = () => ({
 });
 
 const ProfilePage = () => {
+  const { user, refreshUser } = useAuth();
   const [skills, setSkills] = useState([]);
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || "",
+    address: user?.address || "",
+    phone: user?.phone || "",
+    lat: user?.location?.lat || "",
+    lng: user?.location?.lng || "",
+  });
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || "",
+        address: user.address || "",
+        phone: user.phone || "",
+        lat: user.location?.lat || "",
+        lng: user.location?.lng || "",
+      });
+    }
+  }, [user]);
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    setStatus("");
+    setError("");
+    try {
+      await updateUserProfile({
+        name: profileForm.name,
+        address: profileForm.address,
+        phone: profileForm.phone,
+        location: {
+          lat: parseFloat(profileForm.lat),
+          lng: parseFloat(profileForm.lng),
+        },
+      });
+      await refreshUser();
+      setProfileEditing(false);
+      setStatus("Profile info updated successfully.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update profile info.");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleProfileChange = (field, value) => {
+    setProfileForm((prev) => ({ ...prev, [field]: value }));
+  };
+
   const [form, setForm] = useState(createBlankForm());
   const [editingId, setEditingId] = useState("");
   const [status, setStatus] = useState("");
@@ -573,6 +608,153 @@ const ProfilePage = () => {
                   </p>
                 </div>
               </div>
+            </section>
+
+            {/* Status & Error Alerts */}
+            {status && (
+              <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-sm text-emerald-700">
+                {status}
+              </div>
+            )}
+            {error && (
+              <div className="rounded-2xl bg-rose-50 border border-rose-100 p-4 text-sm text-rose-700">
+                {error}
+              </div>
+            )}
+
+            {/* NEW: Personal Information Section */}
+            <section className="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">Personal Information</h2>
+                  <p className="text-sm text-slate-500">Update your name, contact details, and location.</p>
+                </div>
+                {!profileEditing ? (
+                  <button
+                    onClick={() => setProfileEditing(true)}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    <Edit3 className="h-4 w-4" /> Edit Profile
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setProfileEditing(false)}
+                    className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition"
+                  >
+                    <X className="h-4 w-4" /> Cancel
+                  </button>
+                )}
+              </div>
+
+              {!profileEditing ? (
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                      <UserCheck className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Full Name</p>
+                      <p className="text-slate-900 font-medium">{user?.name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                      <Phone className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone</p>
+                      <p className="text-slate-900 font-medium">{user?.phone}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 md:col-span-2">
+                    <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Location & Address</p>
+                      <p className="text-slate-900 font-medium">{user?.address || "No address set"}</p>
+                      {user?.location?.lat && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Coordinates: {user.location.lat.toFixed(4)}, {user.location.lng.toFixed(4)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleProfileSubmit} className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Full Name</label>
+                      <input
+                        type="text"
+                        value={profileForm.name}
+                        onChange={(e) => handleProfileChange("name", e.target.value)}
+                        className="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Phone</label>
+                      <input
+                        type="text"
+                        value={profileForm.phone}
+                        onChange={(e) => handleProfileChange("phone", e.target.value)}
+                        className="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        required
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700">Address</label>
+                      <input
+                        type="text"
+                        value={profileForm.address}
+                        onChange={(e) => handleProfileChange("address", e.target.value)}
+                        className="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Latitude</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={profileForm.lat}
+                        onChange={(e) => handleProfileChange("lat", e.target.value)}
+                        className="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Longitude</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={profileForm.lng}
+                        onChange={(e) => handleProfileChange("lng", e.target.value)}
+                        className="mt-1 block w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setProfileEditing(false)}
+                      className="px-6 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={profileSaving}
+                      className="px-6 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+                    >
+                      {profileSaving ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </form>
+              )}
             </section>
 
             <section className="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm">

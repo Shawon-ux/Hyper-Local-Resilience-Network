@@ -69,7 +69,7 @@ const Navbar = () => {
     fetchUnreadNotifications();
 
     // Create socket connection
-    const newSocket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
+    const newSocket = io(import.meta.env.VITE_SOCKET_URL || window.location.origin.replace(":5173", ":9457"), {
       autoConnect: true,
     });
     
@@ -116,7 +116,6 @@ const Navbar = () => {
   // Navigation Links
   const mainLinks = [
     { name: "Home", path: "/", icon: Home },
-    { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Community", path: "/community", icon: Users },
   ];
 

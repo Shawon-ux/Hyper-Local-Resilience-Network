@@ -8,7 +8,7 @@ const { validationResult } = require("express-validator");
 const generateToken = (id) => {
   return jwt.sign(
     { id },
-    process.env.JWT_SECRET || "secret123",
+    process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_SECRET is missing in production!'); })() : "secret123"),
     { expiresIn: "30d" }
   );
 };

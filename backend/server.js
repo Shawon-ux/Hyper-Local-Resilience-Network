@@ -29,6 +29,7 @@ const alertRoutes = require("./routes/alertRoutes");
 const criticalRequestRoutes = require("./routes/criticalRequestRoutes");
 const safeRoutes = require("./routes/safeRoutes");
 const readinessRoutes = require("./routes/readinessRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -111,6 +112,7 @@ app.use("/api/alerts", alertRoutes);
 app.use("/api/requests", criticalRequestRoutes);
 app.use("/api/safe-status", safeRoutes);
 app.use("/api/readiness", readinessRoutes);
+app.use("/api/users", userRoutes);
 
 // Socket.io - MERGED handlers
 io.on("connection", (socket) => {

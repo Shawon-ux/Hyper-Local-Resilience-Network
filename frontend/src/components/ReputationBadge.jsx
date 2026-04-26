@@ -8,7 +8,20 @@ export default function ReputationBadge({ user, compact = false }) {
   const totalVouches = user.reputation?.totalVouches || 0;
   const averageRating = user.reputation?.averageRating || 0;
   const trustScore = user.reputation?.trustScore || 0;
-  const reputationScore = user.reputationScore || 0;
+  const reputationScore = user.reputationScore ?? user.reputation?.reputationScore ?? 0;
+
+  // Handle skillEndorsements which could be a Map or a plain Object
+  const skillEndorsements = user.reputation?.skillEndorsements;
+  const hasEndorsements = skillEndorsements && (
+    (skillEndorsements instanceof Map && skillEndorsements.size > 0) ||
+    (!(skillEndorsements instanceof Map) && Object.keys(skillEndorsements).length > 0)
+  );
+
+  const skillEndorsementsArray = hasEndorsements 
+    ? (skillEndorsements instanceof Map 
+        ? Array.from(skillEndorsements.entries()) 
+        : Object.entries(skillEndorsements))
+    : [];
 
   if (compact) {
     return (
@@ -75,14 +88,13 @@ export default function ReputationBadge({ user, compact = false }) {
       </div>
 
       {/* Skill Endorsements */}
-      {user.reputation?.skillEndorsements &&
-        user.reputation.skillEndorsements.size > 0 && (
+      {hasEndorsements && (
           <div className="mt-3 bg-white rounded-lg p-2">
             <p className="text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wider">
               Skills
             </p>
             <div className="space-y-1">
-              {Array.from(user.reputation.skillEndorsements.entries())
+              {skillEndorsementsArray
                 .slice(0, 3)
                 .map(([skill, data]) => (
                   <div
