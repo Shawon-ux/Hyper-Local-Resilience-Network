@@ -34,6 +34,11 @@ exports.createMicroTask = async (req, res) => {
       },
     });
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('task:new', microTask);
+    }
+
     res.status(201).json(microTask);
   } catch (error) {
     console.error(error);
@@ -173,6 +178,7 @@ exports.acceptTask = async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       io.to(task.postedBy._id.toString()).emit("notification", notification);
+      io.emit("task:updated", task);
     }
 
     res.json(task);
@@ -249,6 +255,7 @@ exports.completeTask = async (req, res) => {
           selectedSkills: task.selectedSkills,
         }
       });
+      io.emit("task:updated", task);
     }
 
     res.json(task);

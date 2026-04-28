@@ -29,6 +29,9 @@ export default function AvailableTasksPage() {
 
   useEffect(() => {
     loadTasks();
+    
+    window.addEventListener('taskUpdated', loadTasks);
+    return () => window.removeEventListener('taskUpdated', loadTasks);
   }, []);
 
   const normalizeSkill = (s) => {

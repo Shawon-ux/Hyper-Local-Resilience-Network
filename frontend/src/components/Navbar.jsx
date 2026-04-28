@@ -89,12 +89,16 @@ const Navbar = () => {
 
     newSocket.on("notification:new", handleNewNotification);
     newSocket.on("notification", handleNewNotification);
+    newSocket.on("task:new", () => window.dispatchEvent(new Event('taskUpdated')));
+    newSocket.on("task:updated", () => window.dispatchEvent(new Event('taskUpdated')));
     window.addEventListener("notifications:changed", handleNotificationsChanged);
     window.addEventListener("notificationsRead", handleNotificationsChanged);
 
     return () => {
       newSocket.off("notification:new", handleNewNotification);
       newSocket.off("notification", handleNewNotification);
+      newSocket.off("task:new");
+      newSocket.off("task:updated");
       window.removeEventListener("notifications:changed", handleNotificationsChanged);
       window.removeEventListener("notificationsRead", handleNotificationsChanged);
       newSocket.disconnect();
@@ -117,6 +121,7 @@ const Navbar = () => {
   const mainLinks = [
     { name: "Home", path: "/", icon: Home },
     { name: "Community", path: "/community", icon: Users },
+    { name: "My Community", path: "/my-community", icon: Users },
   ];
 
   const safetyLinks = [
