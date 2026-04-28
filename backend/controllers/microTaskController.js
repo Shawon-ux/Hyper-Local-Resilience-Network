@@ -37,6 +37,8 @@ exports.createMicroTask = async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       io.emit('task:new', microTask);
+      // Also emit to all connected clients for real-time updates
+      io.emit('task:updated', microTask);
     }
 
     res.status(201).json(microTask);
@@ -162,7 +164,7 @@ exports.acceptTask = async (req, res) => {
 
     task.status = 'in-progress';
     task.helper = req.user._id;
-    await task.save();
+    const updatedTask = await task.save();
 
     const Notification = require('../models/Notification');
     const notification = await Notification.create({
@@ -173,15 +175,29 @@ exports.acceptTask = async (req, res) => {
       meta: {
         taskId: task._id
       }
+      // isRead defaults to false
     });
 
     const io = req.app.get('io');
     if (io) {
-      io.to(task.postedBy._id.toString()).emit("notification", notification);
-      io.emit("task:updated", task);
+      const posterUserId = task.postedBy._id.toString();
+      console.log(`[TASK ACCEPTED] Notifying user ${posterUserId}`, {
+        taskId: task._id,
+        notificationId: notification._id,
+        isRead: notification.isRead
+      });
+      
+      // Send notification to the task poster using both room formats for compatibility
+      io.to(posterUserId).emit("notification", notification);
+      io.to(posterUserId).emit("notification:new", notification);
+      io.to(`user:${posterUserId}`).emit("notification", notification);
+      io.to(`user:${posterUserId}`).emit("notification:new", notification);
+      
+      // Broadcast task update to all users so their task lists refresh
+      io.emit("task:updated", updatedTask);
     }
 
-    res.json(task);
+    res.json(updatedTask);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

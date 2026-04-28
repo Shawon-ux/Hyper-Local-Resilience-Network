@@ -21,7 +21,7 @@ import {
   CheckCircle,
   Trophy,
   Map,
-  Radio
+  Radio,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -68,30 +68,56 @@ const Navbar = () => {
 
     fetchUnreadNotifications();
 
-    // Create socket connection
-    const newSocket = io(import.meta.env.VITE_SOCKET_URL || window.location.origin.replace(":5173", ":9457"), {
-      autoConnect: true,
-    });
-    
+    // Create socket connection with consistent URL
+    const newSocket = io(
+      import.meta.env.VITE_SOCKET_URL ||
+        window.location.origin.replace(":5173", ":9457"),
+      {
+        autoConnect: true,
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 5,
+      },
+    );
+
     setSocket(newSocket);
-    
+
     newSocket.emit("register:user", user._id);
     newSocket.emit("register", user._id); // Support both naming conventions
 
     const handleNewNotification = () => {
-      setUnreadCount((current) => current + 1);
-      window.dispatchEvent(new Event('taskUpdated'));
+      // Fetch unread count and refresh all listeners
+      fetchUnreadNotifications();
+      window.dispatchEvent(new Event("taskUpdated"));
     };
-    
+
     const handleNotificationsChanged = () => {
       fetchUnreadNotifications();
     };
 
+    // Set up connection handler for re-registration
+    const handleConnect = () => {
+      console.log("Navbar socket connected, registering user:", user._id);
+      newSocket.emit("register:user", user._id);
+      newSocket.emit("register", user._id);
+    };
+
+    // Attach listeners immediately - they work even if not yet connected
     newSocket.on("notification:new", handleNewNotification);
     newSocket.on("notification", handleNewNotification);
-    newSocket.on("task:new", () => window.dispatchEvent(new Event('taskUpdated')));
-    newSocket.on("task:updated", () => window.dispatchEvent(new Event('taskUpdated')));
-    window.addEventListener("notifications:changed", handleNotificationsChanged);
+    newSocket.on("task:new", () =>
+      window.dispatchEvent(new Event("taskUpdated")),
+    );
+    newSocket.on("task:updated", () =>
+      window.dispatchEvent(new Event("taskUpdated")),
+    );
+    newSocket.on("connect", handleConnect);
+
+    window.addEventListener(
+      "notifications:changed",
+      handleNotificationsChanged,
+    );
     window.addEventListener("notificationsRead", handleNotificationsChanged);
 
     return () => {
@@ -99,8 +125,15 @@ const Navbar = () => {
       newSocket.off("notification", handleNewNotification);
       newSocket.off("task:new");
       newSocket.off("task:updated");
-      window.removeEventListener("notifications:changed", handleNotificationsChanged);
-      window.removeEventListener("notificationsRead", handleNotificationsChanged);
+      newSocket.off("connect", handleConnect);
+      window.removeEventListener(
+        "notifications:changed",
+        handleNotificationsChanged,
+      );
+      window.removeEventListener(
+        "notificationsRead",
+        handleNotificationsChanged,
+      );
       newSocket.disconnect();
     };
   }, [user?._id]);
@@ -157,20 +190,21 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-4">
-            {user && mainLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-2 ${
-                  isActive(link.path)
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <link.icon className="h-4 w-4" />
-                {link.name}
-              </Link>
-            ))}
+            {user &&
+              mainLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-2 ${
+                    isActive(link.path)
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <link.icon className="h-4 w-4" />
+                  {link.name}
+                </Link>
+              ))}
 
             {/* Safety Dropdown */}
             {user && (
@@ -181,7 +215,9 @@ const Navbar = () => {
                     setSafetyMenuOpen(!safetyMenuOpen);
                   }}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2 ${
-                    safetyMenuOpen ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-100"
+                    safetyMenuOpen
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Shield className="h-4 w-4" />
@@ -216,7 +252,9 @@ const Navbar = () => {
                     setResourceMenuOpen(!resourceMenuOpen);
                   }}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2 ${
-                    resourceMenuOpen ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-100"
+                    resourceMenuOpen
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Box className="h-4 w-4" />
@@ -251,7 +289,9 @@ const Navbar = () => {
                     setTaskMenuOpen(!taskMenuOpen);
                   }}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2 ${
-                    taskMenuOpen ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-100"
+                    taskMenuOpen
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Plus className="h-4 w-4" />
@@ -374,21 +414,24 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden border-t">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            {user && mainLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                onClick={() => setIsOpen(false)}
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
-              >
-                {link.name}
-              </Link>
-            ))}
+            {user &&
+              mainLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                >
+                  {link.name}
+                </Link>
+              ))}
 
             {user && (
               <>
                 <div className="border-t pt-2 mt-2">
-                  <p className="px-3 text-xs font-semibold text-gray-500">SAFETY</p>
+                  <p className="px-3 text-xs font-semibold text-gray-500">
+                    SAFETY
+                  </p>
                   {safetyLinks.map((link) => (
                     <Link
                       key={link.path}
@@ -402,7 +445,9 @@ const Navbar = () => {
                 </div>
 
                 <div className="border-t pt-2 mt-2">
-                  <p className="px-3 text-xs font-semibold text-gray-500">RESOURCES</p>
+                  <p className="px-3 text-xs font-semibold text-gray-500">
+                    RESOURCES
+                  </p>
                   {resourceLinks.map((link) => (
                     <Link
                       key={link.path}
@@ -416,7 +461,9 @@ const Navbar = () => {
                 </div>
 
                 <div className="border-t pt-2 mt-2">
-                  <p className="px-3 text-xs font-semibold text-gray-500">TASKS</p>
+                  <p className="px-3 text-xs font-semibold text-gray-500">
+                    TASKS
+                  </p>
                   {taskLinks.map((link) => (
                     <Link
                       key={link.path}
@@ -432,7 +479,7 @@ const Navbar = () => {
                 <Link
                   to="/notifications"
                   onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 flex items-center justify-between"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 items-center justify-between"
                 >
                   Notifications
                   {unreadCount > 0 && (
